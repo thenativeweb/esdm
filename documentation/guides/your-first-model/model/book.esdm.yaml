@@ -1,0 +1,16 @@
+apiVersion: schema.esdm.io/core/v1
+kind: aggregate
+name: book
+scope:
+  domain: library
+  boundedContext: cataloging
+identifiedBy:
+  source: state
+  field: isbn
+state:
+  type: object
+  properties:
+    title: { type: string }
+    author: { type: string }
+    isbn: { type: string }
+  required: [title, author, isbn]

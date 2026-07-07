@@ -1,0 +1,5 @@
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: cataloging
+scope:
+  domain: library

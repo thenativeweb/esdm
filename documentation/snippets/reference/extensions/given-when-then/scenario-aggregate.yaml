@@ -1,0 +1,72 @@
+type: object
+properties:
+    name:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+    description:
+        type: string
+    given:
+        type: array
+        items:
+            type: object
+            properties:
+                event:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                data:
+                    type: object
+            required: [event, data]
+            additionalProperties: false
+    when:
+        type: object
+        properties:
+            command:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+            data:
+                type: object
+            actor:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [command, data]
+        additionalProperties: false
+    then:
+        oneOf:
+            - type: object
+              properties:
+                events:
+                    type: array
+                    items:
+                        type: object
+                        properties:
+                            event:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                            data:
+                                type: object
+                        required: [event, data]
+                        additionalProperties: false
+              required: [events]
+              additionalProperties: false
+            - type: object
+              properties:
+                rejection:
+                    oneOf:
+                        - type: object
+                          properties:
+                            invariant:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                          required: [invariant]
+                          additionalProperties: false
+                        - type: object
+                          properties:
+                            reason:
+                                type: string
+                                minLength: 1
+                          required: [reason]
+                          additionalProperties: false
+              required: [rejection]
+              additionalProperties: false
+required: [name, when, then]
+additionalProperties: false

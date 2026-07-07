@@ -1,0 +1,16 @@
+apiVersion: schema.esdm.io/core/v1
+kind: query
+name: list-books
+scope:
+  domain: library
+  boundedContext: cataloging
+readModel: books
+result:
+  type: array
+  items:
+    type: object
+    properties:
+      title: { type: string }
+      author: { type: string }
+      isbn: { type: string }
+    required: [title, author, isbn]

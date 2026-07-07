@@ -1,0 +1,50 @@
+properties:
+    scope:
+        type: object
+        properties:
+            domain:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+            boundedContext:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [domain, boundedContext]
+        additionalProperties: false
+    readModel:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+    paradigm:
+        type: string
+        enum:
+            - tabular
+            - document
+            - graph
+            - stream
+            - key-value
+            - search-index
+            - time-series
+            - column
+            - vector
+    result:
+        type: object
+    parameters:
+        type: object
+    actors:
+        type: array
+        minItems: 1
+        items:
+            type: string
+            pattern: "^[a-z][a-z0-9-]*$"
+    constraints:
+        type: array
+        items:
+            type: object
+            properties:
+                name:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                rule:
+                    type: string
+            required: [name, rule]
+            additionalProperties: false
+required: [scope, readModel, result]

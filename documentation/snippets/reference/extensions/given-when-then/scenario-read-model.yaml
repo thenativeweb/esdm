@@ -1,0 +1,62 @@
+type: object
+properties:
+    name:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+    description:
+        type: string
+    given:
+        type: array
+        items:
+            oneOf:
+                - type: object
+                  properties:
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    aggregate:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    event:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    data:
+                        type: object
+                  required: [boundedContext, aggregate, event, data]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    event:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    data:
+                        type: object
+                  required: [boundedContext, event, data]
+                  additionalProperties: false
+    when:
+        type: object
+        properties:
+            query:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+            parameters:
+                type: object
+        required: [query, parameters]
+        additionalProperties: false
+    then:
+        oneOf:
+            - type: object
+              properties:
+                result: true
+              required: [result]
+              additionalProperties: false
+            - type: object
+              properties:
+                readModel: true
+              required: [readModel]
+              additionalProperties: false
+required: [name, when, then]
+additionalProperties: false

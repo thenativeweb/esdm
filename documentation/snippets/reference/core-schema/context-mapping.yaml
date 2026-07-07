@@ -1,0 +1,298 @@
+oneOf:
+    - properties:
+        type:
+            const: customer-supplier
+        customer:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+        supplier:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+      required: [type, customer, supplier]
+    - properties:
+        type:
+            const: conformist
+        conformist:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+        upstream:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+      required: [type, conformist, upstream]
+    - properties:
+        type:
+            const: anti-corruption-layer
+        downstream:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+        upstream:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+      required: [type, downstream, upstream]
+    - properties:
+        type:
+            const: open-host-service
+        host:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+        consumer:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+      required: [type, host, consumer]
+    - properties:
+        type:
+            const: published-language
+        publisher:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+        consumer:
+            oneOf:
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, boundedContext]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [domain, externalSystem]
+                  additionalProperties: false
+      required: [type, publisher, consumer]
+    - properties:
+        type:
+            const: shared-kernel
+        participants:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items:
+                type: object
+                properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                required: [domain, boundedContext]
+                additionalProperties: false
+      required: [type, participants]
+    - properties:
+        type:
+            const: partnership
+        participants:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items:
+                type: object
+                properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                required: [domain, boundedContext]
+                additionalProperties: false
+      required: [type, participants]
+    - properties:
+        type:
+            const: separate-ways
+        participants:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items:
+                type: object
+                properties:
+                    domain:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                required: [domain, boundedContext]
+                additionalProperties: false
+      required: [type, participants]

@@ -1,0 +1,7 @@
+# Block everything by default and re-include only what the image
+# actually needs. New extensions land in the build context
+# automatically as long as their schema lives at <name>/v*.yaml.
+*
+!Dockerfile
+!nginx.conf
+!**/*.yaml

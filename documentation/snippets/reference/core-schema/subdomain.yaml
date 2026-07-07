@@ -1,0 +1,19 @@
+properties:
+    scope:
+        type: object
+        properties:
+            domain:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [domain]
+        additionalProperties: false
+    type:
+        type: string
+        enum: [core, supporting, generic]
+    boundedContexts:
+        type: array
+        minItems: 1
+        items:
+            type: string
+            pattern: "^[a-z][a-z0-9-]*$"
+required: [scope, type, boundedContexts]

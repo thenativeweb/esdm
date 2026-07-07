@@ -1,0 +1,29 @@
+properties:
+    scope:
+        oneOf:
+            - type: object
+              properties:
+                domain:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                boundedContext:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                aggregate:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+              required: [domain, boundedContext, aggregate]
+              additionalProperties: false
+            - type: object
+              properties:
+                domain:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                boundedContext:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+              required: [domain, boundedContext]
+              additionalProperties: false
+    data:
+        type: object
+required: [scope, data]

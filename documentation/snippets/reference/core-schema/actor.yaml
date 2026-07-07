@@ -1,0 +1,34 @@
+properties:
+    scope:
+        type: object
+        properties:
+            domain:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+            boundedContext:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [domain, boundedContext]
+        additionalProperties: false
+    type:
+        type: string
+        enum: [human, system]
+    responsibilities:
+        type: array
+        items:
+            type: string
+    backedBy:
+        type: array
+        items:
+            type: string
+            pattern: "^[a-z][a-z0-9-]*$"
+required: [scope, type]
+allOf:
+    - if:
+        properties:
+            type:
+                const: human
+        required: [type]
+      then:
+        not:
+            required: [backedBy]

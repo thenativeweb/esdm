@@ -1,0 +1,156 @@
+site_name: Event-Sourced Domain Modeling
+site_description: ESDM is the Event-Sourced Domain Modeling language for describing event-sourced domains as YAML, with built-in tools to manage them.
+site_url: https://www.esdm.io/
+repo_url: https://github.com/thenativeweb/esdm
+repo_name: thenativeweb/esdm
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: images/logo.svg
+  favicon: images/favicon.svg
+
+  palette:
+    scheme: slate
+    primary: black
+    accent: teal
+
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.tabs.link
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.caption
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.keys
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path:
+        - docs
+        - guides
+        - snippets
+      check_paths: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - social
+
+extra:
+  generator: false
+
+extra_css:
+  - overrides/overrides.css
+
+strict: true
+
+validation:
+  omitted_files: warn
+  links:
+    absolute_links: relative_to_docs
+
+nav:
+  - "": index.md
+  - Introduction:
+      - What is ESDM: introduction/what-is-esdm.md
+      - Use Cases: introduction/use-cases.md
+      - Design Principles: introduction/design-principles.md
+      - License: introduction/license.md
+  - Getting Started:
+      - Installing ESDM: getting-started/installing-esdm.md
+      - Updating ESDM: getting-started/updating-esdm.md
+      - Your First Model with AI: getting-started/your-first-model-with-ai.md
+      - Your First Model by Hand: getting-started/your-first-model.md
+      - Running esdm lint: getting-started/running-esdm-lint.md
+      - Running esdm view: getting-started/running-esdm-view.md
+      - Running esdm glossary: getting-started/running-esdm-glossary.md
+      - Editor Support: getting-started/editor-support.md
+  - Concepts:
+      - Overview: concepts/overview.md
+      - Domain: concepts/domain.md
+      - Subdomain: concepts/subdomain.md
+      - Bounded Context: concepts/bounded-context.md
+      - Aggregate: concepts/aggregate.md
+      - Dynamic Consistency Boundary: concepts/dynamic-consistency-boundary.md
+      - Process Manager: concepts/process-manager.md
+      - Read Model: concepts/read-model.md
+      - Command: concepts/command.md
+      - Event: concepts/event.md
+      - Query: concepts/query.md
+      - Entity: concepts/entity.md
+      - Value Object: concepts/value-object.md
+      - Policy: concepts/policy.md
+      - Event Handler: concepts/event-handler.md
+      - Domain Service: concepts/domain-service.md
+      - Actor: concepts/actor.md
+      - External System: concepts/external-system.md
+      - Context Mapping: concepts/context-mapping.md
+  - Modeling Guides:
+      - Overview: modeling-guides/overview.md
+  - Recipes:
+      - Overview: recipes/overview.md
+  - Reference:
+      - CLI: reference/cli.md
+      - Core Schema:
+          - Overview: reference/core-schema/overview.md
+          - actor: reference/core-schema/actor.md
+          - aggregate: reference/core-schema/aggregate.md
+          - bounded-context: reference/core-schema/bounded-context.md
+          - command: reference/core-schema/command.md
+          - context-mapping: reference/core-schema/context-mapping.md
+          - domain: reference/core-schema/domain.md
+          - domain-service: reference/core-schema/domain-service.md
+          - dynamic-consistency-boundary: reference/core-schema/dynamic-consistency-boundary.md
+          - entity: reference/core-schema/entity.md
+          - event: reference/core-schema/event.md
+          - event-handler: reference/core-schema/event-handler.md
+          - external-system: reference/core-schema/external-system.md
+          - policy: reference/core-schema/policy.md
+          - process-manager: reference/core-schema/process-manager.md
+          - query: reference/core-schema/query.md
+          - read-model: reference/core-schema/read-model.md
+          - subdomain: reference/core-schema/subdomain.md
+          - value-object: reference/core-schema/value-object.md
+  - Extensions:
+      - Overview: extensions/overview.md
+      - Domain Storytelling:
+          - Introduction: extensions/domain-storytelling/introduction.md
+          - Concepts:
+              - Overview: extensions/domain-storytelling/concepts/overview.md
+              - Actor: extensions/domain-storytelling/concepts/actor.md
+              - Work Object: extensions/domain-storytelling/concepts/work-object.md
+              - Sentence: extensions/domain-storytelling/concepts/sentence.md
+              - Group: extensions/domain-storytelling/concepts/group.md
+          - Reference:
+              - Overview: extensions/domain-storytelling/reference/overview.md
+              - domain-story: extensions/domain-storytelling/reference/domain-story.md
+      - Given-When-Then:
+          - Introduction: extensions/given-when-then/introduction.md
+          - Concepts:
+              - Overview: extensions/given-when-then/concepts/overview.md
+              - Feature: extensions/given-when-then/concepts/feature.md
+              - Scenario: extensions/given-when-then/concepts/scenario.md
+          - Reference:
+              - Overview: extensions/given-when-then/reference/overview.md
+              - feature: extensions/given-when-then/reference/feature.md
+              - scenario: extensions/given-when-then/reference/scenario.md
+  - Privacy Policy: https://www.thenativeweb.io/company/privacy-policy
+  - Legal Notice: https://www.thenativeweb.io/company/legal-notice

@@ -1,0 +1,21 @@
+apiVersion: schema.esdm.io/core/v1
+kind: read-model
+name: books
+scope:
+  domain: library
+  boundedContext: cataloging
+paradigm: tabular
+schema:
+  type: array
+  items:
+    type: object
+    properties:
+      title: { type: string }
+      author: { type: string }
+      isbn: { type: string }
+    required: [title, author, isbn]
+projections:
+  - boundedContext: cataloging
+    aggregate: book
+    event: acquired
+    rule: Append a row with `title`, `author`, and `isbn`.

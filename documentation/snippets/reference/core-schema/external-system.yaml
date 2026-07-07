@@ -1,0 +1,19 @@
+properties:
+    scope:
+        type: object
+        properties:
+            domain:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [domain]
+        additionalProperties: false
+    direction:
+        type: string
+        enum: [inbound, outbound, bidirectional]
+    category:
+        type: string
+    capabilities:
+        type: array
+        items:
+            type: string
+required: [scope, direction]

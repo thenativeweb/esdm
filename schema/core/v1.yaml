@@ -1,0 +1,1729 @@
+# Copyright (c) 2026 the native web GmbH. All rights reserved.
+#
+# Licensed under the MIT license.
+# Full terms: https://www.esdm.io/introduction/license/
+# This notice must not be removed.
+
+# Core schema identity.
+#
+# `$id` is a resolvable URL; `apiVersion` is the same URL without the
+# `https://` scheme. The mapping is mechanical – `$id = "https://" +
+# apiVersion` – so every document unambiguously identifies the schema
+# it must be validated against, with no parsing or registry lookup.
+#
+# ESDM is extensible. Beyond the core kinds enumerated below,
+# additional kinds may be introduced by *extensions* – independent
+# schemas describing artifacts the core deliberately leaves out,
+# primarily discovery outputs (domain-storytelling stories,
+# event-storming results, example mappings, ...). Core and extensions
+# share a symmetric layout under the `schema.esdm.io` authority:
+#
+#   Core:      https://schema.esdm.io/core/v1
+#   Extension: https://schema.esdm.io/<name>/v1
+#
+# The name `core` is reserved for this document; every extension
+# lives at a sibling path. Extension versions move independently of
+# the core, mirroring how Kubernetes API groups move independently
+# of `core/v1`.
+#
+# Third-party extensions use their own authority and path entirely
+# (e.g. `acme.corp/esdm/my-ext/v1`), and their schemas are hosted
+# wherever the third party publishes them.
+#
+# Validation dispatches on `apiVersion`: a document validates against
+# exactly one schema – the core (this document) when `apiVersion`
+# equals `schema.esdm.io/core/v1`, or the matching
+# extension schema otherwise. The core's `kind` enum stays closed;
+# extensions never inject kinds into the core, and core documents
+# never validate against an extension.
+#
+# File convention: documents that follow this schema are stored as
+# `*.esdm.yaml` files. A single file may contain multiple documents
+# separated by `---` (standard YAML multi-document syntax). Tooling
+# reading those documents can discover both conventions mechanically
+# by reading the `x-esdm-file-suffix` and `x-esdm-document-separator`
+# fields on this schema.
+#
+# Project layout: an ESDM project keeps schemas under a single
+# `schemas/` directory at the project root, one subdirectory per
+# schema (the core schema and every extension), and one file per
+# version inside – `schemas/core/v1.yaml`, `schemas/<extension>/v1.yaml`.
+# The user's own `*.esdm.yaml` model files live at the project root
+# alongside `schemas/` (or in any sub-layout the user prefers). The
+# `x-esdm-project-layout` field below exposes this structure
+# mechanically so generators (including AI tooling such as Claude
+# Code) materialize the expected layout without guessing.
+$id: "https://schema.esdm.io/core/v1"
+$schema: "https://json-schema.org/draft/2020-12/schema"
+# `x-esdm-schema-revision` is a SemVer that moves with every change to
+# this file, independently of `$id`. The schema identity (`$id`,
+# `apiVersion`) stays stable across non-breaking edits; the revision
+# lets the tooling tell two builds of the same major version apart so
+# `update-schema` can refresh a project's local copy without a major
+# bump. Local copies that drift from the embedded revision are
+# rejected by the linter (see `esdm update-schema`).
+x-esdm-schema-revision: "1.0.0"
+x-esdm-file-suffix: ".esdm.yaml"
+x-esdm-document-separator: "---"
+x-esdm-project-layout:
+  schemas-directory: "schemas"
+  schema-path-template: "schemas/{name}/{version}.yaml"
+  document-organization:
+    # The primary axis along which user documents are grouped on disk:
+    # every bounded context has its own top-level directory at the
+    # project root. Tools that materialize ESDM models (Claude Code,
+    # generators, scaffolders) should default to this layout instead
+    # of inventing their own – grouping by document kind
+    # (`commands/`, `events/`, ...) loses the fachliche cohesion
+    # that ESDM's whole consistency-unit story is built on.
+    primary-axis: bounded-context
+    # Where BC-spanning artifacts live. Policies, process-managers
+    # and event-handlers are domain-scoped (see their `scope`
+    # definitions); context-mappings are pairwise relationships
+    # between BCs. None of them belong inside a single BC's
+    # directory – placing them there would falsely suggest
+    # ownership. The `integration/` sibling makes the cross-BC
+    # character visible in the file system.
+    cross-context-bucket: integration
+    convention: |
+      Group documents primarily by bounded context: every BC has its
+      own top-level directory. BC-spanning artifacts – policies,
+      process-managers, event-handlers, and context-mappings – live
+      in a sibling `integration/` directory rather than inside any
+      single BC, mirroring their domain-level scope.
+
+      Within a bounded context, group documents by consistency unit
+      (aggregate or dynamic-consistency-boundary). Commands, events
+      and invariants of one unit belong together – fachlich, beim
+      Lesen, beim Reviewen. The concrete file granularity is up to
+      the modeler: one file per consistency unit, several files
+      split by document kind (`aggregate`, `commands`, `events`),
+      or a directory per unit – whatever scales with the BC's size.
+
+      External systems are domain-scoped and typically inventoried
+      in a single `external-systems.esdm.yaml` at the domain root,
+      treated as a flat catalog rather than scattered per BC.
+
+      Tools that materialize ESDM models default to this layout.
+      The convention is not enforced by the linter; modelers may
+      deviate when a project's shape genuinely calls for it.
+description: "Core schema for event-sourced domain models. ESDM describes domains at the logical level: `domain`, `subdomain`, `bounded-context`, `context-mapping`, `aggregate`, `dynamic-consistency-boundary`, `command`, `event`, `event-handler`, `policy`, `process-manager`, `read-model`, `query`, `entity`, `value-object`, `domain-service`, `actor`, and `external-system`. Two consistency units coexist as first-class kinds: `aggregate` is the classic, container-based unit (one identifier, one persistent state, lifecycle-bound); `dynamic-consistency-boundary` is the selector-based unit, spanned ad hoc per decision over a set of consulted events, suited for multi-key parameterisation and overlapping boundaries. Models may mix both freely – a command binds to exactly one of them via its `scope`, and an event is either aggregate-owned or free-standing within its bounded context. Rules that don't fit a fixed grammar – aggregate, dynamic-consistency-boundary, value-object and process-manager invariants, command emission logic, event-handler activation, policy and process-manager firing conditions, process-manager reaction logic, query result shaping, domain-service computations, projection effects, DCB consult criteria, and event-handler side effects – are captured as prose rules, carried either by the shared `namedRule` definition (`invariants`, `constraints`, `rules`) or by a `rule` or `criteria` field inside purpose-specific structures (`projections`, `sideEffects`, `reactions`, `consults`). State-level termination predicates of process managers (`endsWhen`) are predicates rather than rules and use the parallel `namedCondition` definition with a `condition` field. Arrays throughout the schema use their natural identifier (a `name`, a `term`, or a reference triple) as implicit key; uniqueness within an array is a modeling rule the schema does not enforce. Cross-field references – `aggregate.identifiedBy.field` pointing into `state`, `dynamic-consistency-boundary.identifiedBy[].field` pointing into the triggering command's `data`, `process-manager.correlatedBy.field` pointing into event payloads, `process-manager.timers[].at` pointing into `state` – are likewise modeling rules the schema does not enforce. Concrete API surfaces (routes, protocols, response shapes) are out of scope here. Discovery artifacts (domain-storytelling stories, event-storming output, example mappings, ...) are out of scope for the core and live in dedicated extension schemas; see the header comment for the extension model."
+
+$defs:
+  name:
+    type: string
+    pattern: "^[a-z][a-z0-9-]*$"
+
+  namedRule:
+    # A named, natural-language rule. Used wherever the implementation must
+    # enforce or encode behavior that does not fit a fixed grammar – aggregate
+    # invariants, command emission rules, event-handler activation conditions,
+    # query filter/sort/limit rules. The `rule` field carries the rule text in
+    # prose; `name` is the stable identifier for cross-referencing.
+    type: object
+    properties:
+      name:
+        $ref: "#/$defs/name"
+      rule:
+        type: string
+    required: [name, rule]
+    additionalProperties: false
+
+  namedCondition:
+    # A named, natural-language predicate over state. Used where the
+    # implementation must *evaluate* whether something holds at a
+    # point in time, rather than *encode* behavior. Currently used by
+    # `process-manager.endsWhen`. Distinct from `namedRule`, which
+    # carries rules the implementation must encode (projection logic,
+    # side-effect descriptions, emission constraints, invariants).
+    type: object
+    properties:
+      name:
+        $ref: "#/$defs/name"
+      condition:
+        type: string
+    required: [name, condition]
+    additionalProperties: false
+
+  scopeDomain:
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+    required: [domain]
+    additionalProperties: false
+
+  scopeBoundedContext:
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+      boundedContext:
+        $ref: "#/$defs/name"
+    required: [domain, boundedContext]
+    additionalProperties: false
+
+  scopeAggregate:
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+      boundedContext:
+        $ref: "#/$defs/name"
+      aggregate:
+        $ref: "#/$defs/name"
+    required: [domain, boundedContext, aggregate]
+    additionalProperties: false
+
+  scopeDynamicConsistencyBoundary:
+    # Triple identifying a dynamic-consistency-boundary across the
+    # domain – the DCB-side counterpart to `scopeAggregate`. Used by
+    # `command.scope` and `commandReference` to point at a DCB instead
+    # of an aggregate; mirrors the aggregate triple structurally so the
+    # two consistency units sit at the same modeling level.
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+      boundedContext:
+        $ref: "#/$defs/name"
+      dynamicConsistencyBoundary:
+        $ref: "#/$defs/name"
+    required: [domain, boundedContext, dynamicConsistencyBoundary]
+    additionalProperties: false
+
+  externalSystemReference:
+    # Reference to an `external-system` entity, used where no enclosing
+    # scope fixes the domain – currently only `mappingEndpoint` (and via
+    # it `context-mapping`, which has no `scope` of its own). Mirrors the
+    # shape of the `scope*` definitions (domain + entity name) so the
+    # reference resolves unambiguously. Consumers whose scope transitively
+    # fixes the domain (e.g. `event-handler.sideEffects.external-call` via
+    # `scopeDomain`, `actor.backedBy` via `scopeBoundedContext`) use the
+    # bare external-system name instead, mirroring `command.publishes`.
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+      externalSystem:
+        $ref: "#/$defs/name"
+    required: [domain, externalSystem]
+    additionalProperties: false
+
+  mappingEndpoint:
+    # One side of a context mapping. Asymmetric DDD mapping patterns
+    # (customer-supplier, conformist, anti-corruption-layer,
+    # open-host-service, published-language) apply equally to external
+    # dependencies as to internal bounded contexts – so either endpoint
+    # may be a bounded context or an external system. Symmetric mappings
+    # (shared-kernel, partnership, separate-ways) are bounded-context
+    # only and do not use this definition.
+    oneOf:
+      - $ref: "#/$defs/scopeBoundedContext"
+      - $ref: "#/$defs/externalSystemReference"
+
+  paradigm:
+    type: string
+    enum:
+      - tabular
+      - document
+      - graph
+      - stream
+      - key-value
+      - search-index
+      - time-series
+      - column
+      - vector
+
+  deliveryGuarantee:
+    # Shared by every kind that consumes events (`event-handler`,
+    # `policy`, `process-manager`). The conditional requirement
+    # "`at-least-once` demands `idempotency`" is not expressed here –
+    # it sits on each consuming kind's own `allOf` block because it
+    # binds a sibling property, not this field in isolation.
+    type: string
+    enum: [at-least-once, at-most-once]
+
+  eventReference:
+    # Identifies an event across the domain. Used wherever a consumer is
+    # not implicitly scoped to a single producer – i.e.,
+    # `event-handler.handles`, `policy.handles`,
+    # `process-manager.startsWhen`, `process-manager.reactions[].when`,
+    # `read-model.projections`, and `dynamic-consistency-boundary.consults`.
+    # Contrast with `command.publishes`, which uses bare event names because
+    # a command's scope already fixes the producing entity.
+    # Two variants reflect the two ways an event can be scoped: the first
+    # branch references aggregate-owned events ({boundedContext, aggregate,
+    # event}); the second branch references free-standing, BC-scoped events
+    # ({boundedContext, event}) emitted by DCB-bound commands. The variants
+    # are not interchangeable – each event has exactly one shape, fixed by
+    # its own `event.scope`.
+    oneOf:
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          aggregate:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+        required: [boundedContext, aggregate, event]
+        additionalProperties: false
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+        required: [boundedContext, event]
+        additionalProperties: false
+
+  commandReference:
+    # Identifies a command across the domain. Used by `policy.emits`
+    # and `process-manager.reactions[].emits`. Mirrors `eventReference`:
+    # omits the domain because the consumer (a domain-scoped policy or
+    # process manager) already fixes it.
+    # Two variants reflect the two consistency units a command can be
+    # bound to: the first branch references aggregate-bound commands
+    # ({boundedContext, aggregate, command}); the second branch
+    # references DCB-bound commands ({boundedContext,
+    # dynamicConsistencyBoundary, command}). Each command has exactly
+    # one shape, fixed by its own `command.scope`.
+    oneOf:
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          aggregate:
+            $ref: "#/$defs/name"
+          command:
+            $ref: "#/$defs/name"
+        required: [boundedContext, aggregate, command]
+        additionalProperties: false
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          dynamicConsistencyBoundary:
+            $ref: "#/$defs/name"
+          command:
+            $ref: "#/$defs/name"
+        required: [boundedContext, dynamicConsistencyBoundary, command]
+        additionalProperties: false
+
+  idempotency:
+    # Who is responsible for tolerating duplicate delivery, and
+    # optionally how. Relevant mainly for `at-least-once`, where
+    # duplicates are a given. For `at-most-once`, duplicates cannot
+    # occur by construction; `owner: not-required` documents that
+    # explicitly. Used by every kind that consumes events (currently
+    # `event-handler`, `policy`, `process-manager`).
+    #   self           – the consuming entity itself deduplicates (e.g.
+    #                    tracks processed event IDs, uses conditional
+    #                    writes). Independent of which kind consumes
+    #                    the event.
+    #   downstream     – a system the consumer calls into handles it
+    #                    (e.g. idempotency keys on an external API,
+    #                    upserts on a target store).
+    #   infrastructure – the delivery layer deduplicates (broker-level
+    #                    exactly-once semantics, transactional outbox).
+    #   none           – no mechanism in place; duplicates will corrupt
+    #                    state. A deliberate, dangerous choice – document why.
+    #   not-required   – the consumer is naturally idempotent (pure set
+    #                    operations, no counters, no side effects).
+    # `strategy` is optional free-form prose describing the concrete
+    # mechanism when `owner` alone is not self-explanatory.
+    type: object
+    properties:
+      owner:
+        type: string
+        enum:
+          - self
+          - downstream
+          - infrastructure
+          - none
+          - not-required
+      strategy:
+        type: string
+    required: [owner]
+    additionalProperties: false
+
+  projection:
+    # An entry in `read-model.projections`: an event reference plus a
+    # natural-language rule expressing how the event affects the read model.
+    # The `rule` field matches `namedRule.rule` semantically – it carries a
+    # rule the implementation must encode – but since a projection is already
+    # identified by its event reference, no separate `name` field is needed.
+    # Two variants mirror `eventReference`: the first references
+    # aggregate-owned events, the second references free-standing,
+    # BC-scoped events emitted by DCB-bound commands.
+    oneOf:
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          aggregate:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+          rule:
+            type: string
+        required: [boundedContext, aggregate, event, rule]
+        additionalProperties: false
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+          rule:
+            type: string
+        required: [boundedContext, event, rule]
+        additionalProperties: false
+
+type: object
+properties:
+  apiVersion:
+    const: schema.esdm.io/core/v1
+  kind:
+    type: string
+    enum:
+      - domain
+      - subdomain
+      - bounded-context
+      - context-mapping
+      - aggregate
+      - dynamic-consistency-boundary
+      - command
+      - event
+      - event-handler
+      - policy
+      - process-manager
+      - read-model
+      - query
+      - entity
+      - value-object
+      - domain-service
+      - actor
+      - external-system
+  name:
+    $ref: "#/$defs/name"
+  description:
+    type: string
+  metadata:
+    # Non-semantic attachments; nothing in the rest of the schema reads them.
+    # A deliberate escape hatch so orthogonal concerns (tooling hints,
+    # provenance, integration) don't leak into domain fields.
+    #   `labels`      – tag-like identifiers for logical grouping and
+    #                   selection (ownership slices, feature groupings,
+    #                   lifecycle tags). Short, identifying values.
+    #   `annotations` – free-form key/value data for tooling, integration,
+    #                   and provenance (e.g. `cloudevents.type` on events,
+    #                   `cloudevents.subject` on aggregates, `author`,
+    #                   `team`). Arbitrary values, not used for selection.
+    type: object
+    properties:
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+      annotations:
+        type: object
+        additionalProperties:
+          type: string
+    additionalProperties: false
+required: [apiVersion, kind, name]
+unevaluatedProperties: false
+
+allOf:
+  - if:
+      properties:
+        kind:
+          const: domain
+      required: [kind]
+    then:
+      # The top-level business the model describes. A domain carries no
+      # kind-specific fields: its content – bounded contexts, subdomains,
+      # aggregates, events, and so on – is assembled by the `scope` fields
+      # of every other kind pointing back at it by name, not by a list on
+      # the domain itself. That keeps the model open: new entities belong
+      # to a domain simply by scoping to it, no central registry to update.
+      true
+
+  - if:
+      properties:
+        kind:
+          const: subdomain
+      required: [kind]
+    then:
+      # Strategic classification of a portion of the domain by
+      # competitive value – the canonical DDD distinction between
+      # `core`, `supporting`, and `generic`. Informs investment:
+      # `core` differentiates the business and deserves the most
+      # modeling and engineering attention; `supporting` is necessary
+      # but not differentiating (typically specific enough to build
+      # in-house); `generic` is a commodity problem (auth, mail,
+      # payments, geocoding, ...) that would typically be bought or
+      # outsourced.
+      # Orthogonal to `bounded-context`, not a hierarchical layer
+      # above it: a subdomain groups bounded contexts by strategic
+      # intent without replacing the domain → bounded-context scope
+      # relationship. A bounded context can be modeled without any
+      # subdomain (classification is optional and often added later),
+      # and the same bounded context should appear in at most one
+      # subdomain – the schema cannot enforce uniqueness across
+      # subdomain definitions; treat it as a modeling rule.
+      properties:
+        scope:
+          $ref: "#/$defs/scopeDomain"
+        type:
+          # `core`       – competitively differentiating capability;
+          #                the product's reason to exist.
+          # `supporting` – necessary but not differentiating; built
+          #                in-house because it is specific enough to
+          #                warrant custom work, not because it is
+          #                strategic.
+          # `generic`    – commodity problem with well-known solutions;
+          #                typically bought or outsourced.
+          type: string
+          enum: [core, supporting, generic]
+        boundedContexts:
+          # Bare bounded-context names the subdomain covers; the
+          # subdomain's domain (via its `scope`) fixes the resolution
+          # context, mirroring `command.publishes`. `minItems: 1`
+          # because a subdomain without assigned bounded contexts is
+          # an intention, not a modeling statement – either assign
+          # bounded contexts or don't model the subdomain yet.
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/name"
+      required: [scope, type, boundedContexts]
+
+  - if:
+      properties:
+        kind:
+          const: bounded-context
+      required: [kind]
+    then:
+      properties:
+        scope:
+          $ref: "#/$defs/scopeDomain"
+        ubiquitousLanguage:
+          # The canonical vocabulary of the bounded context. Each entry
+          # fixes one `term` and its `definition` – deliberately no
+          # aliases: the whole point of a ubiquitous language is that
+          # exactly one term is chosen, and aliases would suggest
+          # equal-rank synonyms. `avoid` serves a different purpose: it
+          # records terms that were considered and rejected, so that
+          # someone searching for a rejected term still lands on the
+          # canonical one and sees that it is *not* the term to use.
+          # The asymmetry (canonical term on top, rejected terms listed
+          # under it) is the point – an alias field would flatten it.
+          # `reason` is optional: if there is no deeper justification
+          # than "we picked the other one", forcing a reason only
+          # produces filler text.
+          # The field itself is optional – a bounded context may be
+          # modeled before its language is fleshed out – but if present,
+          # it must carry at least one term (`minItems: 1`): an empty
+          # `ubiquitousLanguage: []` is noise, not a modeling statement.
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              term:
+                type: string
+                minLength: 1
+              definition:
+                type: string
+                minLength: 1
+              avoid:
+                type: array
+                minItems: 1
+                items:
+                  type: object
+                  properties:
+                    term:
+                      type: string
+                      minLength: 1
+                    reason:
+                      type: string
+                      minLength: 1
+                  required: [term]
+                  additionalProperties: false
+            required: [term, definition]
+            additionalProperties: false
+      required: [scope]
+
+  - if:
+      properties:
+        kind:
+          const: context-mapping
+      required: [kind]
+    then:
+      # Each mapping type carries its own role names so the direction is
+      # encoded in the schema rather than left to convention. Asymmetric
+      # types use role-named fields (e.g. customer/supplier); each role
+      # may be a bounded context or an `external-system` reference, since
+      # the asymmetric DDD patterns apply equally to dependencies outside
+      # the modeled domain. Symmetric types (shared-kernel, partnership,
+      # separate-ways) use an unordered `participants` pair of bounded
+      # contexts only – sharing a kernel or forming a partnership with a
+      # third-party service does not make sense. A mapping always
+      # represents exactly two endpoints; richer topologies are expressed
+      # as multiple mappings.
+      # Unlike other kinds, `context-mapping` has no `scope`: its
+      # endpoints may straddle domains (a bounded context in one domain
+      # mapped to an external system, or – less commonly – to a
+      # bounded context in another domain), so no single enclosing
+      # scope applies. The natural identifier of a mapping is the
+      # combination of `type` and its two endpoints, not `name`; the
+      # `name` serves as a human-readable handle and is not referenced
+      # from anywhere else in the schema. Uniqueness of mapping names
+      # is therefore a modeling convention (global across all
+      # mappings), not a schema-enforced constraint – consistent with
+      # how the schema treats natural-key uniqueness throughout.
+      # Each branch lists only the type-specific fields; common top-level
+      # fields (`apiVersion`, `kind`, `name`, `description`, `metadata`)
+      # are evaluated against the outer schema. The top-level
+      # `unevaluatedProperties: false` then forbids any property not
+      # accounted for by either layer, so no per-branch
+      # `additionalProperties: false` is needed (and adding one would
+      # incorrectly reject the common top-level fields).
+      oneOf:
+        - properties:
+            type:
+              const: customer-supplier
+            customer:
+              $ref: "#/$defs/mappingEndpoint"
+            supplier:
+              $ref: "#/$defs/mappingEndpoint"
+          required: [type, customer, supplier]
+        - properties:
+            type:
+              const: conformist
+            conformist:
+              $ref: "#/$defs/mappingEndpoint"
+            upstream:
+              $ref: "#/$defs/mappingEndpoint"
+          required: [type, conformist, upstream]
+        - properties:
+            type:
+              const: anti-corruption-layer
+            # The ACL lives on the `downstream` side, translating the
+            # upstream model into the local one. The upstream side is
+            # frequently an `external-system` (e.g. payment provider,
+            # legacy backend), which is exactly when ACL pays off.
+            downstream:
+              $ref: "#/$defs/mappingEndpoint"
+            upstream:
+              $ref: "#/$defs/mappingEndpoint"
+          required: [type, downstream, upstream]
+        - properties:
+            type:
+              const: open-host-service
+            host:
+              $ref: "#/$defs/mappingEndpoint"
+            consumer:
+              $ref: "#/$defs/mappingEndpoint"
+          required: [type, host, consumer]
+        - properties:
+            type:
+              const: published-language
+            # Captures the common asymmetric case: one side publishes the
+            # shared language, another consumes it. For one publisher with
+            # multiple consumers, record multiple mappings.
+            publisher:
+              $ref: "#/$defs/mappingEndpoint"
+            consumer:
+              $ref: "#/$defs/mappingEndpoint"
+          required: [type, publisher, consumer]
+        - properties:
+            type:
+              const: shared-kernel
+            participants:
+              type: array
+              minItems: 2
+              maxItems: 2
+              items:
+                $ref: "#/$defs/scopeBoundedContext"
+          required: [type, participants]
+        - properties:
+            type:
+              const: partnership
+            participants:
+              type: array
+              minItems: 2
+              maxItems: 2
+              items:
+                $ref: "#/$defs/scopeBoundedContext"
+          required: [type, participants]
+        - properties:
+            type:
+              const: separate-ways
+            participants:
+              type: array
+              minItems: 2
+              maxItems: 2
+              items:
+                $ref: "#/$defs/scopeBoundedContext"
+          required: [type, participants]
+
+  - if:
+      properties:
+        kind:
+          const: aggregate
+      required: [kind]
+    then:
+      properties:
+        scope:
+          $ref: "#/$defs/scopeBoundedContext"
+        identifiedBy:
+          # Discriminator `source` names the identification strategy; the sibling key
+          # carries the strategy-specific detail:
+          #   source: state     → field: <name of the field within `state`>
+          #   source: static    → value: <fixed identifier string>
+          #   source: generated → generator: <kebab-case strategy name, e.g. uuid,
+          #                                   ulid, snowflake, cuid, nanoid, ...>
+          # `generator` is a free-form name (matching the common name pattern) so any
+          # identification strategy can be captured without extending the schema.
+          oneOf:
+            - type: object
+              properties:
+                source:
+                  const: state
+                field:
+                  $ref: "#/$defs/name"
+              required: [source, field]
+              additionalProperties: false
+            - type: object
+              properties:
+                source:
+                  const: static
+                value:
+                  type: string
+                  minLength: 1
+              required: [source, value]
+              additionalProperties: false
+            - type: object
+              properties:
+                source:
+                  const: generated
+                generator:
+                  $ref: "#/$defs/name"
+              required: [source, generator]
+              additionalProperties: false
+        state:
+          # JSON Schema object describing the aggregate's state. Aggregates are always
+          # conceptually document-like (an identified state object reconstructed from
+          # events); paradigm variation belongs to read models, not here.
+          type: object
+        invariants:
+          # Global rules that always hold for the aggregate. Covers value invariants
+          # ("line-item quantity positive"), lifecycle invariants ("only open orders
+          # accept item changes"), and event-payload invariants ("rescheduled delivery
+          # moves strictly later"). Commands protect invariants implicitly – do not
+          # duplicate invariants as command-level rules.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+      required: [scope, identifiedBy, state]
+
+  - if:
+      properties:
+        kind:
+          const: dynamic-consistency-boundary
+      required: [kind]
+    then:
+      # A consistency unit defined dynamically per decision rather than
+      # statically by container – the "Dynamic Consistency Boundary"
+      # idea (Pellegrini, "Killing the Aggregate"). A DCB names the
+      # events it consults to build an ad-hoc decision state, the
+      # identifiers parameterising one instance, and the invariants
+      # the consulted state must satisfy before new events may be
+      # appended. The decision logic itself (deciding what to emit)
+      # belongs to the writer that operates within the boundary –
+      # typically a DCB-bound `command` (see `command.scope`).
+      # The append condition is implicit: by default, an instance may
+      # append only if no new event matching its `consults` selectors
+      # has appeared since the read position. The schema deliberately
+      # does not carry the condition as a separate field – it follows
+      # from `consults`. Platform-level optimisations (tighter or
+      # looser append conditions) remain an implementation concern.
+      # DCBs and aggregates are both first-class consistency units in
+      # ESDM and may coexist within the same model. Use an aggregate
+      # when the consistency boundary aligns with a clearly identified,
+      # persistent container; use a DCB when the boundary must be
+      # spanned per decision – multi-key parameterisation, overlapping
+      # boundaries, or events that naturally belong to several
+      # decisions at once. Boundaries may overlap freely: the same
+      # event may be consulted by any number of DCBs.
+      properties:
+        scope:
+          # BC-local. A DCB's append condition reasons about events
+          # within one bounded context; cross-BC consistency is
+          # process-manager territory.
+          $ref: "#/$defs/scopeBoundedContext"
+        identifiedBy:
+          # How a single DCB instance is identified. Multi-part on
+          # purpose – a typical DCB instance is parameterised by
+          # several values from the triggering command (e.g.
+          # `studentId` and `courseId` for an enrollment-capacity
+          # boundary). Each component carries a `name` plus a
+          # discriminated `source`:
+          #   command-payload – value taken from the triggering
+          #                     command's `data`. The typical DCB case:
+          #                     a parameter of the decision arrives
+          #                     with the command.
+          #   static          – a fixed identifier string. Useful for
+          #                     boundaries that exist exactly once
+          #                     (e.g. a single global counter).
+          #   generated       – value produced by a strategy named here
+          #                     (uuid, ulid, ...). Rare for DCBs, since
+          #                     instances are typically derived from
+          #                     existing data, not freshly minted.
+          # `source: state` from `aggregate.identifiedBy` is
+          # deliberately absent – DCBs have no container-level state
+          # to draw from. The cross-field reference
+          # `command-payload`/`field` → command's `data` schema is a
+          # modeling rule the schema does not enforce.
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              name:
+                $ref: "#/$defs/name"
+            required: [name]
+            oneOf:
+              - properties:
+                  source:
+                    const: command-payload
+                  field:
+                    $ref: "#/$defs/name"
+                required: [source, field]
+              - properties:
+                  source:
+                    const: static
+                  value:
+                    type: string
+                    minLength: 1
+                required: [source, value]
+              - properties:
+                  source:
+                    const: generated
+                  generator:
+                    $ref: "#/$defs/name"
+                required: [source, generator]
+            unevaluatedProperties: false
+        consults:
+          # The events that make up the DCB's decision state. Each
+          # entry references an event and adds a prose `criteria`
+          # describing which occurrences of that event are relevant
+          # for one instance ("all `enrollment-recorded` events with
+          # the same `studentId` as the current instance"). Two
+          # variants mirror `eventReference` and `projection`: the
+          # first selects aggregate-owned events, the second
+          # free-standing BC-scoped events. The criteria text is
+          # paradigm-agnostic – concrete platforms may realize it via
+          # tags, EventQL, stream queries, or other mechanisms.
+          # The consulted selectors implicitly define the append
+          # condition (see the kind description above).
+          type: array
+          minItems: 1
+          items:
+            oneOf:
+              - type: object
+                properties:
+                  boundedContext:
+                    $ref: "#/$defs/name"
+                  aggregate:
+                    $ref: "#/$defs/name"
+                  event:
+                    $ref: "#/$defs/name"
+                  criteria:
+                    type: string
+                required: [boundedContext, aggregate, event, criteria]
+                additionalProperties: false
+              - type: object
+                properties:
+                  boundedContext:
+                    $ref: "#/$defs/name"
+                  event:
+                    $ref: "#/$defs/name"
+                  criteria:
+                    type: string
+                required: [boundedContext, event, criteria]
+                additionalProperties: false
+        invariants:
+          # Rules that must hold over the consulted decision state
+          # before new events may be appended ("at most 30 enrollments
+          # per course", "a student may not enroll in the same course
+          # twice"). Same `namedRule` mechanism as on aggregate /
+          # value-object / process-manager.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+      required: [scope, identifiedBy, consults]
+
+  - if:
+      properties:
+        kind:
+          const: command
+      required: [kind]
+    then:
+      # Commands deliberately carry neither `deliveryGuarantee` nor
+      # `idempotency` – unlike event consumers (`event-handler`,
+      # `policy`, `process-manager`), where duplicate delivery is a
+      # fact of the messaging layer that the domain must reason about.
+      # Commands are synchronous intents issued by an `actor`; retry
+      # behavior and idempotency keys live in the API/transport layer,
+      # not in the domain model. Whether a command is naturally
+      # idempotent typically falls out of the aggregate's invariants
+      # and state transitions ("cancel an already-canceled order → no
+      # effect") – if it matters, express it there rather than as a
+      # separate command-level flag.
+      properties:
+        scope:
+          # A command belongs to exactly one consistency unit – either an
+          # aggregate (container-based, persistent) or a
+          # dynamic-consistency-boundary (selector-based, ad hoc). The
+          # `oneOf` makes that exclusivity structural; no extra constraint
+          # needed.
+          oneOf:
+            - $ref: "#/$defs/scopeAggregate"
+            - $ref: "#/$defs/scopeDynamicConsistencyBoundary"
+        data:
+          # JSON Schema describing the command's input payload. Named
+          # `data` for the same reason as `event.data`: a command carries
+          # a payload value, not a type definition. Required so that
+          # "no payload" must be expressed deliberately as an empty
+          # schema (`data: {}`) rather than left implicit by omission.
+          type: object
+        publishes:
+          # List of bare event names. A command's publishing scope is fixed
+          # by its own `scope` – for aggregate-bound commands the producing
+          # aggregate is implied, for DCB-bound commands the BC is implied
+          # and the emitted events are free-standing within it. Either way,
+          # the full reference would be redundant here, so event names
+          # alone suffice.
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/name"
+        actors:
+          # Which actors are permitted to issue this command. Bare actor
+          # names; a command's bounded-context scope (via its aggregate)
+          # fixes the resolution context, mirroring `publishes`.
+          # Captures *who*, not *how*: API surfaces (REST routes, gRPC
+          # services, transports) remain implementation. The list also
+          # implicitly conveys exposure – a command whose only actor is a
+          # `system` actor is internal-only; one that includes a public
+          # `human` actor (e.g. `customer`) is externally callable. If
+          # different audiences truly require different rules, model them
+          # as separate commands rather than a single command with split
+          # exposure.
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/name"
+        constraints:
+          # Rules that shape how `publishes` is emitted: ordering, conditional emission,
+          # mutual exclusivity, dependencies between events. Natural-language entries.
+          # Trivial commands (one event, always) do not need constraints.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+      required: [scope, data, publishes]
+
+  - if:
+      properties:
+        kind:
+          const: event
+      required: [kind]
+    then:
+      # Events are immutable facts: once written, an event's payload
+      # shape is fixed forever, because old events remain in the event
+      # store and must stay interpretable. ESDM does not model event
+      # versioning as a first-class field – there is no `version`
+      # discriminator hidden inside `data`. Instead, an evolved event
+      # is a *new event type* with its own name (e.g. `invoice-paid`
+      # and later `invoice-paid-v2`, or `invoice-paid-with-tax`). Consumers
+      # explicitly choose which types they handle; the model expresses
+      # evolution through the appearance of new `event` entries, not
+      # through metadata on existing ones. Migration / upcasting /
+      # parallel-production strategies remain implementation concerns
+      # outside this schema.
+      properties:
+        scope:
+          # An event is either bound to an aggregate (container-owned,
+          # like today) or free-standing within its bounded context
+          # (emitted by a DCB-bound command, no container owner). The
+          # `oneOf` reflects that DCB-emitted events have no
+          # aggregate-level container – DCBs read events, they do not
+          # own them, and overlapping DCBs preclude singular ownership.
+          # Free-standing events therefore identify only by
+          # boundedContext + name; modelers must keep event names unique
+          # within the BC when DCBs are in play (a modeling discipline
+          # the schema does not enforce, parallel to how aggregate name
+          # uniqueness is also a modeling rule).
+          oneOf:
+            - $ref: "#/$defs/scopeAggregate"
+            - $ref: "#/$defs/scopeBoundedContext"
+        data:
+          # JSON Schema describing the event's immutable payload – the
+          # facts the event carries. Named `data` (not `schema`) because
+          # an event carries a payload value, not a type definition; the
+          # same applies to `command.data`. Contrast with
+          # `value-object.schema` (a type definition) and
+          # `aggregate.state` (the evolving state of an identified
+          # entity). Required so that "no payload" must be expressed
+          # deliberately as an empty schema (`data: {}`) rather than
+          # left implicit by omission.
+          type: object
+      required: [scope, data]
+
+  - if:
+      properties:
+        kind:
+          const: event-handler
+      required: [kind]
+    then:
+      properties:
+        scope:
+          $ref: "#/$defs/scopeDomain"
+        deliveryGuarantee:
+          $ref: "#/$defs/deliveryGuarantee"
+        idempotency:
+          $ref: "#/$defs/idempotency"
+        handles:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/eventReference"
+        constraints:
+          # Rules under which the handler runs (e.g., time windows, feature flags,
+          # environment conditions). Natural-language entries.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+        sideEffects:
+          # Externally observable effects produced by the handler. Side
+          # effects are documentation, not orchestration – a handler that
+          # needs to react by issuing further commands or running a
+          # long-lived workflow is a process manager (see `process-
+          # manager`), not an event handler.
+          # Each entry is one of two shapes:
+          #   external-call – a call to an `external-system` (payment
+          #                   provider, mailer, identity provider, ...).
+          #   other         – any other observable effect that is not a
+          #                   third-party invocation (audit log entries,
+          #                   metrics, cache invalidations, ...).
+          # In both shapes, `rule` carries the prose description of the
+          # behavior – same field as projections, invariants and
+          # constraints elsewhere; here it describes a behavior the
+          # implementation must encode rather than a constraint to
+          # enforce.
+          type: array
+          minItems: 1
+          items:
+            oneOf:
+              - properties:
+                  type:
+                    const: external-call
+                  externalSystem:
+                    # Bare external-system name; the event-handler's
+                    # domain (via its `scope`) fixes the resolution
+                    # context, mirroring `command.publishes` and
+                    # `actor.backedBy`.
+                    $ref: "#/$defs/name"
+                  rule:
+                    # What the handler asks the external system to do, in
+                    # ubiquitous-language terms ("settle the charge",
+                    # "send the shipment-dispatched notification email").
+                    type: string
+                required: [type, externalSystem, rule]
+                additionalProperties: false
+              - properties:
+                  type:
+                    const: other
+                  rule:
+                    # The observable effect, in ubiquitous-language terms
+                    # ("append an audit-log entry recording the dispatch",
+                    # "increment the failed-payment metric"). Use
+                    # `external-call` whenever the effect is a third-party
+                    # invocation.
+                    type: string
+                required: [type, rule]
+                additionalProperties: false
+      required: [scope, deliveryGuarantee, handles, sideEffects]
+      allOf:
+        - if:
+            properties:
+              deliveryGuarantee:
+                const: at-least-once
+            required: [deliveryGuarantee]
+          then:
+            required: [idempotency]
+
+  - if:
+      properties:
+        kind:
+          const: policy
+      required: [kind]
+    then:
+      # An automated reaction that, when an incoming event fires, emits
+      # one or more commands to drive further state change. A policy is
+      # stateless: no own state across events, no correlation between
+      # events. For state-bearing, multi-event coordination (with
+      # timeouts, compensations, lifecycle), use `process-manager`.
+      # Distinct from `event-handler`: a handler describes externally
+      # observable side effects (mail, audit logs, metrics) without
+      # changing domain state; a policy emits commands and thereby
+      # advances the domain. Pick one based on whether the reaction is
+      # "tell the world about this" (handler) or "do the next thing in
+      # the domain" (policy) – never combine both in a single entity.
+      properties:
+        scope:
+          # Domain-scoped, mirroring `event-handler`: a policy may react
+          # to events from any bounded context and emit commands into
+          # any bounded context. Cross-BC coupling here is a deliberate
+          # integration; consider whether a `context-mapping` should
+          # accompany it.
+          $ref: "#/$defs/scopeDomain"
+        deliveryGuarantee:
+          $ref: "#/$defs/deliveryGuarantee"
+        idempotency:
+          $ref: "#/$defs/idempotency"
+        handles:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/eventReference"
+        emits:
+          # Commands the policy issues when it fires. Unlike
+          # `command.publishes` (which uses bare event names because the
+          # command's aggregate scope is fixed), a policy lives at
+          # domain scope and may emit into any bounded context, so the
+          # full {boundedContext, aggregate, command} triple is
+          # required.
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/commandReference"
+        constraints:
+          # Conditions under which the policy fires (or does not):
+          # "skip already-fulfilled orders", "only fire during business
+          # hours", "require the source event to carry a non-empty
+          # customer reference". Natural-language entries.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+      required: [scope, deliveryGuarantee, handles, emits]
+      allOf:
+        - if:
+            properties:
+              deliveryGuarantee:
+                const: at-least-once
+            required: [deliveryGuarantee]
+          then:
+            required: [idempotency]
+
+  - if:
+      properties:
+        kind:
+          const: process-manager
+      required: [kind]
+    then:
+      # A stateful, long-running coordinator that drives a business
+      # process across one or more bounded contexts. A process manager
+      # runs as instances correlated by a key drawn from incoming events
+      # (e.g. one instance per `orderId`). Each instance has its own
+      # state, a defined lifecycle (`startsWhen` / `endsWhen`), and may
+      # arm timers to react to the passage of time.
+      # Distinct from `event-handler` (no state, externally observable
+      # side effects) and `policy` (no state, command emission triggered
+      # by individual events without correlation). Reach for a process
+      # manager when none of the other two are sufficient because the
+      # reaction depends on what has already happened in the same
+      # process instance.
+      # The reaction list is called `reactions` (not `handles`) because
+      # each entry carries its own per-trigger logic (`rule` plus
+      # optional `emits` / `setTimers` / `cancelTimers`) – a richer
+      # structure than the entity-wide `handles` of event-handler and
+      # policy.
+      properties:
+        scope:
+          # Domain-scoped: a process manager typically coordinates
+          # across bounded contexts, consuming events from several and
+          # emitting commands into several.
+          $ref: "#/$defs/scopeDomain"
+        deliveryGuarantee:
+          $ref: "#/$defs/deliveryGuarantee"
+        idempotency:
+          $ref: "#/$defs/idempotency"
+        correlatedBy:
+          # How an incoming event is mapped to a running instance of
+          # this process manager. `source: event-field` names a field
+          # that must exist (with the same value) on every event listed
+          # in `startsWhen` and in any `reactions[].when` event – the
+          # field's value is the instance key.
+          # Shaped as a discriminated `oneOf` on `source`, even though
+          # only one variant exists today. This is deliberate: real
+          # correlation strategies beyond a single event field do occur
+          # – composite keys spanning multiple fields, rules that
+          # derive the key from payload contents, dedicated correlation
+          # identifiers carried alongside events – and adding them as
+          # further `source` variants stays additive (existing
+          # documents keep validating, new documents opt in). A bare
+          # object without a discriminator would force a breaking
+          # restructure the first time a second strategy lands.
+          oneOf:
+            - type: object
+              properties:
+                source:
+                  const: event-field
+                field:
+                  $ref: "#/$defs/name"
+              required: [source, field]
+              additionalProperties: false
+        state:
+          # JSON Schema object describing the per-instance state. Like
+          # `aggregate.state`, conceptually document-like – paradigm
+          # variation belongs to read models.
+          type: object
+        invariants:
+          # Rules every instance's state must always satisfy
+          # ("`fulfilled` and `canceled` are mutually exclusive").
+          # Same `namedRule` mechanism as on aggregate / value-object;
+          # natural-language entries.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+        constraints:
+          # Entity-wide activation conditions (analogous to
+          # `event-handler.constraints` and `policy.constraints`):
+          # time windows, feature flags, environment gating that apply
+          # to the process manager as a whole rather than to a single
+          # reaction. Per-reaction conditions belong in the reaction's
+          # own `rule` prose.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+        startsWhen:
+          # Event references that create a new process-manager instance.
+          # If the correlation field's value does not yet identify an
+          # instance, one is created; otherwise the event is delivered
+          # to the existing instance through `reactions`.
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/eventReference"
+        endsWhen:
+          # State-level conditions that terminate an instance. Reaching
+          # any one of them retires the instance. Phrased as
+          # `namedCondition`s referring to the state shape
+          # ("state.fulfilled is true", "state.canceled is true") –
+          # the implementation evaluates the predicate after each
+          # reaction and retires the instance if any condition holds.
+          # Successful and failure-driven termination both belong here
+          # – `endsWhen` does not imply success.
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/namedCondition"
+        timers:
+          # Named timers the process manager may arm and cancel from
+          # within reactions. Declaring a timer here defines its
+          # identity and timing – either a relative delay (`after`) or
+          # an absolute moment drawn from a state field (`at`). The
+          # action it performs when it fires is expressed as a normal
+          # entry in `reactions` whose `when` references the timer by
+          # name. This keeps the reaction list the single source of
+          # truth for "what happens".
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                $ref: "#/$defs/name"
+              description:
+                type: string
+            required: [name]
+            oneOf:
+              - properties:
+                  after:
+                    # Relative delay from when the timer is set.
+                    # Structured duration: avoids ISO-8601 cryptography
+                    # (PT30M) in favor of a human-readable shape that
+                    # validates at the schema level. All units are
+                    # interpreted calendrically/wall-clock: a `days`
+                    # interval may span 23 or 25 hours across a DST
+                    # shift, and `months`/`years` follow standard
+                    # calendar arithmetic (e.g. "6 months after
+                    # 2026-01-31" → 2026-07-31), as in common date
+                    # libraries.
+                    type: object
+                    properties:
+                      value:
+                        type: integer
+                        minimum: 1
+                      unit:
+                        type: string
+                        enum: [seconds, minutes, hours, days, weeks, months, years]
+                    required: [value, unit]
+                    additionalProperties: false
+                required: [after]
+              - properties:
+                  at:
+                    # Absolute moment: name of a field on the
+                    # process-manager instance's state that carries the
+                    # target timestamp (e.g. `expires-at`, `due-date`).
+                    # The timer fires at the value held by that field
+                    # when the timer is set. How the field is populated
+                    # is an implementation concern.
+                    $ref: "#/$defs/name"
+                required: [at]
+            unevaluatedProperties: false
+        reactions:
+          # The complete reactive surface of the process manager. Each
+          # entry binds a trigger (`when`) to a per-trigger description
+          # of what happens. Triggers are polymorphic: either an
+          # incoming event (`eventReference`) or the firing of a named
+          # timer (`{ timer: <name> }`). The `rule` is the
+          # natural-language description of the state transition and
+          # any decisions that follow; `emits`, `setTimers` and
+          # `cancelTimers` capture the structured side of those
+          # decisions for tooling.
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              when:
+                oneOf:
+                  - $ref: "#/$defs/eventReference"
+                  - type: object
+                    properties:
+                      timer:
+                        $ref: "#/$defs/name"
+                    required: [timer]
+                    additionalProperties: false
+              rule:
+                type: string
+              emits:
+                type: array
+                items:
+                  $ref: "#/$defs/commandReference"
+              setTimers:
+                type: array
+                items:
+                  $ref: "#/$defs/name"
+              cancelTimers:
+                type: array
+                items:
+                  $ref: "#/$defs/name"
+            required: [when, rule]
+            additionalProperties: false
+      required:
+        - scope
+        - deliveryGuarantee
+        - correlatedBy
+        - state
+        - startsWhen
+        - endsWhen
+        - reactions
+      allOf:
+        - if:
+            properties:
+              deliveryGuarantee:
+                const: at-least-once
+            required: [deliveryGuarantee]
+          then:
+            required: [idempotency]
+
+  - if:
+      properties:
+        kind:
+          const: read-model
+      required: [kind]
+    then:
+      properties:
+        scope:
+          # Read models belong to a bounded context – the one that owns the
+          # view. Cross-context projections remain possible: `projections`
+          # carries full `eventReference` triples and may point at events
+          # from other bounded contexts. Such integration is a deliberate
+          # modeling decision (and typically warrants an accompanying
+          # `context-mapping`) rather than a domain-wide, BC-less view.
+          $ref: "#/$defs/scopeBoundedContext"
+        projections:
+          # Each entry identifies a source event (by boundedContext + aggregate + event)
+          # and carries a natural-language `rule` describing how that event affects the
+          # read model. A free-form rule replaces a CRUD-only enum so non-tabular
+          # paradigms (graph, search-index, time-series, …) can be modeled without
+          # distortion.
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/projection"
+        paradigm:
+          # Optional hint naming the paradigm used to describe `schema`.
+          $ref: "#/$defs/paradigm"
+        schema:
+          # Paradigm-agnostic shape of the entire materialized read model – not of
+          # a single element within it. For tabular/document paradigms this is
+          # commonly a collection shape (`type: array` with `items`, or a keyed
+          # map). Graph, search-index, time-series and other paradigms use their
+          # own conventions – a graph structure, an indexed document form, a
+          # series envelope, etc. Contrast with `value-object.schema` (shape of a
+          # single instance) and with `aggregate.state` (evolving state of one
+          # identified entity): a read model has no identity or lifecycle of its
+          # own; `schema` simply describes what is materialized as a whole.
+          type: object
+      required: [scope, projections, schema]
+
+  - if:
+      properties:
+        kind:
+          const: query
+      required: [kind]
+    then:
+      properties:
+        scope:
+          # Queries belong to the same bounded context as the read model
+          # they access – a query is the logical access path to one view.
+          $ref: "#/$defs/scopeBoundedContext"
+        readModel:
+          # Bare read-model name. A query's bounded context already fixes
+          # the read model's scope (queries and read models co-locate),
+          # so the full {domain, boundedContext, read-model} triple would
+          # be redundant here. Mirrors the rationale behind bare event
+          # names in `command.publishes`.
+          $ref: "#/$defs/name"
+        paradigm:
+          # Optional hint naming the paradigm used to describe `result`.
+          $ref: "#/$defs/paradigm"
+        result:
+          # Paradigm-agnostic shape of the entire query result. For tabular/document
+          # paradigms this is commonly either a single object (single-result query)
+          # or `type: array` with `items` (collection query); the cardinality is
+          # evident from the shape. Non-tabular paradigms may use any shape – graph
+          # traversal result, time-series bucket, search hit set, etc. Queries
+          # describe logical access; concrete API response shapes (envelope fields,
+          # pagination wrappers) belong to a separate API layer.
+          type: object
+        parameters:
+          type: object
+        actors:
+          # Which actors are permitted to run this query. Bare actor
+          # names; the query's bounded-context scope fixes resolution.
+          # Captures *who*, not *how*: API surfaces (REST routes, gRPC
+          # services, transports) remain implementation. The list also
+          # implicitly conveys exposure – a query whose only actor is a
+          # `system` actor is internal-only; one that includes a public
+          # `human` actor (e.g. `customer`) is externally callable. If
+          # different audiences truly require different result shaping or
+          # filtering, model them as separate queries rather than a
+          # single query with split exposure.
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/name"
+        constraints:
+          # All rules that shape the query result: filtering, sorting, limiting,
+          # offsetting, paradigm-specific traversal rules. Natural-language entries.
+          # Queries describe logical access; concrete API response shapes (bucketing,
+          # nesting, aggregation across endpoints) belong to a separate API layer.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+      required: [scope, readModel, result]
+
+  - if:
+      properties:
+        kind:
+          const: entity
+      required: [kind]
+    then:
+      # An identity-bearing modeling element that has no
+      # consistency container of its own. An entity names
+      # the *what* behind an identifier – `student`,
+      # `course`, `book`, `seat` – in a model where the
+      # consistency boundary is spanned per decision (a
+      # `dynamic-consistency-boundary`) rather than carried
+      # by a fixed container (an `aggregate`). It mirrors
+      # the value-object shape (`scope`, `schema`,
+      # `invariants`) and adds an `identifiedBy` strategy
+      # so the identity itself is part of the model.
+      # Unlike an aggregate, an entity has no `state` and
+      # is itself not a consistency unit – it is referenced
+      # from elsewhere (typically a DCB's `identifiedBy`
+      # field or a command's payload) rather than receiving
+      # commands directly.
+      properties:
+        scope:
+          $ref: "#/$defs/scopeBoundedContext"
+        schema:
+          # JSON Schema shape of a single instance of the
+          # entity. Mirrors `value-object.schema` – an
+          # entity has identity but no per-instance
+          # container life of its own, so the schema
+          # describes what one instance looks like, not the
+          # projected state of an evolving thing.
+          type: object
+        identifiedBy:
+          # How an entity instance is identified.
+          # Discriminator `source` names the strategy; the
+          # sibling field carries the strategy-specific
+          # detail:
+          #   source: schema → field: <name of the field
+          #                            within `schema`>
+          #   source: static → value: <fixed identifier
+          #                            string>
+          # The `state` variant from `aggregate.identifiedBy`
+          # is absent – entities have no container state.
+          # The `generated` variant is absent too – an
+          # entity's identity is a description of *what*
+          # identifies it, not a mint specification;
+          # minting belongs on the aggregate or DCB-bound
+          # command that brings the entity into being.
+          oneOf:
+            - type: object
+              properties:
+                source:
+                  const: schema
+                field:
+                  $ref: "#/$defs/name"
+              required: [source, field]
+              additionalProperties: false
+            - type: object
+              properties:
+                source:
+                  const: static
+                value:
+                  type: string
+                  minLength: 1
+              required: [source, value]
+              additionalProperties: false
+        invariants:
+          # Rules every instance must satisfy that JSON
+          # Schema cannot express – mirrors
+          # `value-object.invariants`. Entities have no
+          # lifecycle, so invariants here are purely
+          # structural/value-level: checksums, cross-field
+          # constraints, domain rules attached to the
+          # instance shape itself.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+      required: [scope, schema, identifiedBy]
+
+  - if:
+      properties:
+        kind:
+          const: value-object
+      required: [kind]
+    then:
+      properties:
+        scope:
+          $ref: "#/$defs/scopeBoundedContext"
+        schema:
+          # JSON Schema shape of a single instance of the value object. A value
+          # object has no identity and no lifecycle; `schema` simply describes
+          # what every instance looks like. Contrast with `read-model.schema`,
+          # which describes the entire materialized view (typically a
+          # collection), not a single element.
+          type: object
+        invariants:
+          # Rules every instance must satisfy that JSON Schema cannot express:
+          # computed checks (IBAN/EAN checksums), cross-field constraints
+          # ("start before end", "amount and currency consistent"), and any
+          # domain logic attached to the value itself. Unlike aggregates,
+          # value objects have no lifecycle, so invariants here are purely
+          # structural/value-level. Keep such rules on the value object rather
+          # than duplicating them on every aggregate that embeds it.
+          type: array
+          items:
+            $ref: "#/$defs/namedRule"
+      required: [scope, schema]
+
+  - if:
+      properties:
+        kind:
+          const: domain-service
+      required: [kind]
+    then:
+      # A cluster of stateless domain operations that don't belong to a
+      # single aggregate – classic examples: pricing across product,
+      # customer tier and discount rules; route/distance computation;
+      # exchange-rate conversion. A service groups several related
+      # operations under one ubiquitous-language concept; each individual
+      # operation is a `function`. Use sparingly – much logic that looks
+      # like a domain service actually belongs on an aggregate or a value
+      # object; reach for this kind only when the rule truly spans
+      # multiple concepts and has no natural home on any single one.
+      # Application-service orchestration (coordinating aggregates via
+      # commands) is out of scope here; domain services compute, they
+      # do not mutate.
+      properties:
+        scope:
+          $ref: "#/$defs/scopeBoundedContext"
+        functions:
+          # One or more domain functions bundled under the service.
+          # A service with a single function is allowed but often
+          # signals that the function belongs on an aggregate or a
+          # value-object invariant instead.
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              name:
+                $ref: "#/$defs/name"
+              description:
+                type: string
+              arguments:
+                # JSON Schema describing the function's arguments – the
+                # data it needs to produce its result. Paradigm-agnostic;
+                # not a wire format. An empty object schema is valid but
+                # rare: a zero-argument computation is typically a
+                # constant, not a service.
+                type: object
+              returns:
+                # JSON Schema describing the function's return value. A
+                # domain function always returns computed information;
+                # side-effect-only operations are application-service
+                # territory and are not modeled here.
+                type: object
+              rules:
+                # Natural-language rules expressing the computation:
+                # "list price applies customer-tier discount before
+                # volume discount", "IBAN checksum uses modulo-97 on
+                # digits". Optional – a pure signature may be
+                # self-documenting (currency conversion, distance).
+                type: array
+                items:
+                  $ref: "#/$defs/namedRule"
+            required: [name, arguments, returns]
+            additionalProperties: false
+      required: [scope, functions]
+
+  - if:
+      properties:
+        kind:
+          const: actor
+      required: [kind]
+    then:
+      # A first-class place for who triggers commands and, by extension,
+      # appears as the originator of events. Actors describe ubiquitous-
+      # language roles ("customer", "support-agent", "order-timeout-
+      # scheduler"), not concrete users or accounts. The same human
+      # "customer" may exist in several bounded contexts and mean
+      # different things in each – modeled as separate actors per BC.
+      # Authorization mechanics (permissions, RBAC, OAuth scopes) and
+      # identity (user IDs, sessions) are implementation concerns and
+      # out of scope here. Whether an actor is allowed to issue a given
+      # command is later expressed on the command, not on the actor.
+      properties:
+        scope:
+          $ref: "#/$defs/scopeBoundedContext"
+        type:
+          # `human` – a person acting through a UI or API (end user,
+          #           internal staff, partner contact).
+          # `system` – an automated, domain-internal trigger (scheduler,
+          #            recurring job, internal background process).
+          # External systems (third-party services that call into the
+          # domain) are modeled separately as `external-system` and
+          # referenced from there, not duplicated as actors.
+          type: string
+          enum: [human, system]
+        responsibilities:
+          # Free-form prose statements describing what the actor does in
+          # the domain – reads like a glossary entry, not a permission
+          # list. Use plain strings: responsibilities are descriptive,
+          # not referenced from elsewhere in the model.
+          type: array
+          items:
+            type: string
+        backedBy:
+          # Optional list of external systems that implement the channel
+          # behind a `system` actor – e.g. a `payment-system` actor
+          # backed by `stripe` and `paypal`. Documents the bridge from
+          # the domain abstraction to the concrete dependency without
+          # tying the actor's identity to it (swapping providers leaves
+          # the actor unchanged). Bare external-system names; a system
+          # actor's domain (via its bounded-context scope) fixes the
+          # resolution context, mirroring `command.publishes`.
+          # Only meaningful for `type: system` actors – the schema
+          # enforces this below by forbidding `backedBy` on `type:
+          # human` actors.
+          type: array
+          items:
+            $ref: "#/$defs/name"
+      required: [scope, type]
+      allOf:
+        - if:
+            properties:
+              type:
+                const: human
+            required: [type]
+          then:
+            not:
+              required: [backedBy]
+
+  - if:
+      properties:
+        kind:
+          const: external-system
+      required: [kind]
+    then:
+      # A third-party or otherwise out-of-scope service that the domain
+      # depends on or that calls into the domain – payment providers,
+      # mailers, identity providers, geocoders, webhook sources. Distinct
+      # from `bounded-context`: we don't own, model, or control external
+      # systems; we only name them and the surface we use. Distinct from
+      # `actor`: an external system is a technical channel, not a
+      # ubiquitous-language role. When something inbound (e.g. a Stripe
+      # webhook) triggers a command, the actor on that command is an
+      # internal `system` actor (e.g. `payment-system`) – the external
+      # system is what backs that actor, not the actor itself.
+      # Authentication, endpoint URLs, request/response schemas and
+      # rate-limit details are implementation concerns and not modeled
+      # here.
+      properties:
+        scope:
+          # External systems live at domain scope: a single dependency
+          # (Stripe, SendGrid) is typically usable by any bounded context
+          # in the domain rather than belonging to one of them. Modeling
+          # the same external system per bounded context would duplicate
+          # capabilities and obscure that one provider serves the whole
+          # domain – when access really differs per context, that belongs
+          # in the consuming context's `event-handler.sideEffects`, not
+          # in a per-context external-system definition.
+          $ref: "#/$defs/scopeDomain"
+        direction:
+          # `outbound`      – the domain calls the external system.
+          # `inbound`       – the external system calls the domain
+          #                   (webhooks, push notifications).
+          # `bidirectional` – both directions are in use.
+          type: string
+          enum: [inbound, outbound, bidirectional]
+        category:
+          # Free-form short tag for the kind of external system
+          # (`payment`, `mail`, `sms`, `push`, `identity`, `geocoding`,
+          # `logistics`, `analytics`, `webhook-source`, ...). Not an
+          # enum on purpose: new categories appear all the time and
+          # forcing a fixed list would be more friction than value.
+          type: string
+        capabilities:
+          # Free-form descriptive strings naming the operations or
+          # interactions the domain uses ("create a charge", "issue a
+          # refund", "receive payment-succeeded webhook"). Documentation,
+          # not a callable surface – concrete API signatures live in the
+          # external system's own spec (OpenAPI, gRPC, etc.).
+          type: array
+          items:
+            type: string
+      required: [scope, direction]

@@ -1,0 +1,156 @@
+type: object
+properties:
+    apiVersion:
+        const: schema.esdm.io/domain-storytelling/v1
+    kind:
+        const: domain-story
+    name:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+    description:
+        type: string
+    metadata:
+        type: object
+        properties:
+            labels:
+                type: object
+                additionalProperties:
+                    type: string
+            annotations:
+                type: object
+                additionalProperties:
+                    type: string
+        additionalProperties: false
+    scope:
+        type: object
+        properties:
+            domain:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [domain]
+        additionalProperties: false
+    pointInTime:
+        type: string
+        enum: [as-is, to-be]
+    granularity:
+        type: string
+        enum: [coarse-grained, fine-grained]
+    domainPurity:
+        type: string
+        enum: [pure, digitalized]
+    groups:
+        type: array
+        minItems: 1
+        items:
+            type: object
+            properties:
+                name:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                description:
+                    type: string
+                annotation:
+                    type: string
+            required: [name]
+            additionalProperties: false
+    actors:
+        type: array
+        minItems: 1
+        items:
+            type: object
+            properties:
+                name:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                annotation:
+                    type: string
+                groups:
+                    type: array
+                    minItems: 1
+                    items:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+            required: [name]
+            additionalProperties: false
+    sentences:
+        type: array
+        minItems: 1
+        items:
+            type: object
+            properties:
+                sequenceNumber:
+                    type: integer
+                    minimum: 1
+                workObjects:
+                    type: array
+                    minItems: 1
+                    items:
+                        type: object
+                        properties:
+                            name:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                            annotation:
+                                type: string
+                            groups:
+                                type: array
+                                minItems: 1
+                                items:
+                                    type: string
+                                    pattern: "^[a-z][a-z0-9-]*$"
+                        required: [name]
+                        additionalProperties: false
+                edges:
+                    type: array
+                    minItems: 1
+                    items:
+                        type: object
+                        properties:
+                            from:
+                                oneOf:
+                                    - type: object
+                                      properties:
+                                        actor:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                      required: [actor]
+                                      additionalProperties: false
+                                    - type: object
+                                      properties:
+                                        workObject:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                      required: [workObject]
+                                      additionalProperties: false
+                            to:
+                                oneOf:
+                                    - type: object
+                                      properties:
+                                        actor:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                      required: [actor]
+                                      additionalProperties: false
+                                    - type: object
+                                      properties:
+                                        workObject:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                      required: [workObject]
+                                      additionalProperties: false
+                            label:
+                                type: string
+                            annotation:
+                                type: string
+                            groups:
+                                type: array
+                                minItems: 1
+                                items:
+                                    type: string
+                                    pattern: "^[a-z][a-z0-9-]*$"
+                        required: [from, to]
+                        additionalProperties: false
+            required: [sequenceNumber, edges]
+            additionalProperties: false
+required: [apiVersion, kind, name, scope, sentences]
+unevaluatedProperties: false

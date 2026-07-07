@@ -1,0 +1,3 @@
+apiVersion: schema.esdm.io/core/v1
+kind: domain
+name: library

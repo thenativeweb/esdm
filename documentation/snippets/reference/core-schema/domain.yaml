@@ -1,0 +1,25 @@
+type: object
+properties:
+    apiVersion:
+        const: schema.esdm.io/core/v1
+    kind:
+        const: domain
+    name:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+    description:
+        type: string
+    metadata:
+        type: object
+        properties:
+            labels:
+                type: object
+                additionalProperties:
+                    type: string
+            annotations:
+                type: object
+                additionalProperties:
+                    type: string
+        additionalProperties: false
+required: [apiVersion, kind, name]
+unevaluatedProperties: false

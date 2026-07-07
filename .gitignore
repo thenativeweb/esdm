@@ -1,0 +1,16 @@
+# Build directory
+build/
+
+# Coverage directory
+coverage/
+
+# OS generated files and directories
+.DS_Store
+
+# Claude Code local state
+.claude/settings.local.json
+
+# Documentation build artifacts
+documentation/site/
+documentation/.cache/
+documentation/docs/version.json

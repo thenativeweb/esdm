@@ -1,0 +1,101 @@
+name: QA
+
+on: pull_request
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v7
+
+      - name: Use Go
+        uses: actions/setup-go@v6.5.0
+        with:
+          go-version-file: ./go.mod
+
+      - name: Analyze
+        run: make analyze
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: analyze
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            race-detection: true
+          - os: macos-latest
+            race-detection: false
+          - os: windows-latest
+            race-detection: false
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v7
+
+      - name: Use Go
+        uses: actions/setup-go@v6.5.0
+        with:
+          go-version-file: ./go.mod
+
+      - name: Test (with race detection)
+        if: matrix.race-detection == true
+        run: make test WITH_RACE_DETECTION=true
+
+      - name: Test (without race detection)
+        if: matrix.race-detection == false
+        run: make test
+
+  documentation-lint:
+    name: Documentation lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v7
+
+      - name: Use Go
+        uses: actions/setup-go@v6.5.0
+        with:
+          go-version-file: ./go.mod
+
+      - name: Lint documentation examples
+        run: make lint-documentation-examples
+
+  documentation-build:
+    name: Documentation build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v7
+
+      - name: Use Python
+        uses: actions/setup-python@v6.3.0
+        with:
+          python-version: 3.14
+
+      - name: Install mkdocs-material
+        run: |
+          pip install "mkdocs-material[imaging]==9.7.6"
+
+      - name: Build documentation
+        working-directory: documentation
+        run: mkdocs build --strict

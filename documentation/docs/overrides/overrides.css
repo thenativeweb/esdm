@@ -1,0 +1,20 @@
+a,
+.md-typeset a {
+	color: #26a69a;
+}
+
+.md-nav__link,
+.md-nav__item a {
+	color: #e2e4e9d1;
+}
+
+a:hover,
+.md-typeset a:hover,
+.md-nav__link:hover,
+.md-nav__item a:hover {
+	color: #4db6ac;
+}
+
+.md-nav__link--active {
+	color: #4db6ac !important;
+}

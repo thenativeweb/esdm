@@ -1,0 +1,153 @@
+name: Release latest
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Dry run"
+        required: false
+        type: boolean
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  validate-branch:
+    name: Validate branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check branch
+        id: check-branch
+        run: |
+          if [[ "${{ github.ref_name }}" != "main" ]]; then
+            echo "::error title=Branch validation failed::This workflow can only be run on the main branch."
+            exit 1
+          fi
+
+  get-next-version:
+    name: Get next version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: validate-branch
+    outputs:
+      hasNextVersion: ${{ steps.get-next-version.outputs.hasNextVersion }}
+      version: ${{ steps.get-next-version.outputs.version }}
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: '0'
+      - name: Get next version
+        id: get-next-version
+        uses: thenativeweb/get-next-version@2.7.2
+
+  release:
+    name: Release latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [get-next-version, validate-branch]
+    if: ${{ needs.get-next-version.outputs.hasNextVersion == 'true' }}
+
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: '0'
+      - name: Use Go
+        uses: actions/setup-go@v6.5.0
+        with:
+          go-version-file: ./go.mod
+      - name: Run QA
+        run: make qa WITH_RACE_DETECTION=true
+      - name: Create new version
+        if: ${{ !inputs.dry-run }}
+        run: |
+          git tag v${{ needs.get-next-version.outputs.version }}
+          git push origin v${{ needs.get-next-version.outputs.version }}
+      - name: Create new version (dry run)
+        if: ${{ inputs.dry-run }}
+        run: |
+          git tag v${{ needs.get-next-version.outputs.version }}
+          git push origin v${{ needs.get-next-version.outputs.version }} --dry-run
+      - name: Build artifacts
+        run: make build
+      - name: Release new version
+        if: ${{ !inputs.dry-run }}
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: 'build/*'
+          tag: v${{ needs.get-next-version.outputs.version }}
+      - name: Upload binaries to Scaleway Object Storage
+        if: ${{ !inputs.dry-run }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: fr-par
+          SCW_ENDPOINT: https://s3.fr-par.scw.cloud
+          SCW_BUCKET: esdm
+          VERSION: ${{ needs.get-next-version.outputs.version }}
+        run: |
+          set -euo pipefail
+          binaries=(
+            esdm-darwin-arm64
+            esdm-darwin-amd64
+            esdm-linux-arm64
+            esdm-linux-amd64
+            esdm-windows-arm64.exe
+            esdm-windows-amd64.exe
+          )
+          for binary in "${binaries[@]}"; do
+            aws s3 cp \
+              "build/${binary}" \
+              "s3://${SCW_BUCKET}/${VERSION}/${binary}" \
+              --endpoint-url "${SCW_ENDPOINT}" \
+              --acl public-read \
+              --no-progress
+          done
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4.1.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Login to GitHub container registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Docker Hub registry
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Generate version.json
+        run: make generate-version-json
+      - name: Build and push documentation
+        uses: docker/build-push-action@v7.2.0
+        with:
+          context: ./documentation/
+          platforms: linux/amd64,linux/arm64
+          provenance: mode=max
+          sbom: true
+          push: ${{ !inputs.dry-run }}
+          tags: |
+            ghcr.io/thenativeweb/esdm-documentation:latest
+            ghcr.io/thenativeweb/esdm-documentation:${{ needs.get-next-version.outputs.version }}
+            thenativeweb/esdm-documentation:latest
+            thenativeweb/esdm-documentation:${{ needs.get-next-version.outputs.version }}
+      - name: Build and push schema host
+        uses: docker/build-push-action@v7.2.0
+        with:
+          context: ./schema/
+          platforms: linux/amd64,linux/arm64
+          provenance: mode=max
+          sbom: true
+          push: ${{ !inputs.dry-run }}
+          tags: |
+            ghcr.io/thenativeweb/esdm-schema:latest
+            ghcr.io/thenativeweb/esdm-schema:${{ needs.get-next-version.outputs.version }}
+            thenativeweb/esdm-schema:latest
+            thenativeweb/esdm-schema:${{ needs.get-next-version.outputs.version }}

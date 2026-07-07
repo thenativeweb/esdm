@@ -1,0 +1,267 @@
+# Copyright (c) 2026 the native web GmbH. All rights reserved.
+#
+# Licensed under the MIT license.
+# Full terms: https://www.esdm.io/introduction/license/
+# This notice must not be removed.
+
+# Extension schema for Domain Storytelling (Stefan Hofer / Henning
+# Schwentner).
+#
+# A `domain-story` document captures one narrative flow through a
+# domain as a discovery artifact. It precedes and informs the core
+# ESDM model (aggregates, events and commands are typically derived
+# from stories later), but does not depend on it – extension
+# documents validate in isolation against this schema.
+#
+# For the extension mechanism (URL layout, dispatch on `apiVersion`,
+# symmetric path structure for core and extensions) see the header
+# comment of the core schema document.
+#
+# DS nomenclature maps as follows: `actors` is the story-global cast
+# (each actor appears once in the diagram no matter how many
+# sentences reference it); `workObjects` is declared per sentence
+# because DS re-draws every work object in every sentence it
+# participates in; `edges` carry `from`/`to` references and an
+# optional `label` (the Activity); `sequenceNumber` orders sentences;
+# `annotation` is a free-form string attachable to any declared
+# element or edge; `groups` is a top-level registry with inline
+# `groups: [name, ...]` membership on actors, work objects and edges.
+#
+# Modeling-rule conventions mirror the core: uniqueness of natural
+# keys (actor names, group names, work-object names within a single
+# sentence) and referential integrity of inline `groups: [name, ...]`
+# memberships are modeling rules – checked by tooling, not by JSON
+# Schema. `minItems: 1` is applied uniformly: a present-but-empty
+# list is noise rather than a modeling statement, so lists without
+# content are omitted entirely instead of written as `[]`.
+#
+# File convention: documents that follow this schema are stored as
+# `*.esdm.yaml` files, the same suffix as core documents; `kind`
+# (e.g. `domain-story`) disambiguates which schema each document
+# must validate against. Multiple documents may share one file,
+# separated by `---`. The `x-esdm-file-suffix` and
+# `x-esdm-document-separator` fields below expose these conventions
+# mechanically.
+#
+# Project layout: this extension lives under the shared `schemas/`
+# directory next to the core schema, at
+# `schemas/domain-storytelling/v1.yaml`. The `x-esdm-project-layout`
+# field restates the convention so generators can place extension
+# schemas consistently without guessing. See the core schema for
+# the full layout description.
+$id: "https://schema.esdm.io/domain-storytelling/v1"
+$schema: "https://json-schema.org/draft/2020-12/schema"
+# Per-schema SemVer revision; see the core schema for the rationale.
+# Extension revisions move independently of the core revision, mirroring
+# how extension `$id`s move independently of `core/v1`.
+x-esdm-schema-revision: "1.0.0"
+x-esdm-file-suffix: ".esdm.yaml"
+x-esdm-document-separator: "---"
+x-esdm-project-layout:
+  schemas-directory: "schemas"
+  schema-path-template: "schemas/{name}/{version}.yaml"
+description: "Extension schema for Domain Storytelling (Stefan Hofer / Henning Schwentner). A `domain-story` document captures one narrative flow through a domain as a discovery artifact: `sentences` are the numbered units; each sentence holds `edges` (directed `from`/`to` references between actors and per-sentence work objects) and an optional list of declared `workObjects` for that sentence. Three top-level classification dimensions (`pointInTime`, `granularity`, `domainPurity`) match the DS canon. `groups` clusters arbitrary elements via a top-level registry with inline `groups: [name, ...]` membership on actors, work objects and edges. Actors live at story scope (one icon per story); work objects live at sentence scope (one icon per sentence, re-declared per sentence they appear in). Name references in edges do not require the referenced element to be declared in `actors`/`workObjects` lists – declarations are only needed for elements that carry an `annotation` or `groups` membership. Uniqueness of names, consistency of group references, and integrity of the edge graph are modeling rules the schema does not enforce, mirroring the core's convention."
+
+$defs:
+  name:
+    # Inlined rather than `$ref`-ed into the core so the extension
+    # document validates in isolation. Same pattern as the core's
+    # `$defs/name`; the duplication is deliberate.
+    type: string
+    pattern: "^[a-z][a-z0-9-]*$"
+
+  scopeDomain:
+    # Inlined rather than `$ref`-ed into the core so the extension
+    # document validates in isolation. Same shape as the core's
+    # `scopeDomain`.
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+    required: [domain]
+    additionalProperties: false
+
+  nodeReference:
+    # Reference to a node at one end of an edge – either an actor
+    # (resolved against the story-level `actors` list when annotated,
+    # otherwise implicit) or a work object (resolved against the
+    # enclosing sentence's `workObjects` list when annotated,
+    # otherwise implicit). Discriminated by which property is present.
+    oneOf:
+      - type: object
+        properties:
+          actor:
+            $ref: "#/$defs/name"
+        required: [actor]
+        additionalProperties: false
+      - type: object
+        properties:
+          workObject:
+            $ref: "#/$defs/name"
+        required: [workObject]
+        additionalProperties: false
+
+type: object
+properties:
+  apiVersion:
+    const: schema.esdm.io/domain-storytelling/v1
+  kind:
+    # The document kind – one concrete narrative flow. Distinct from
+    # the extension name `domain-storytelling`, which names the
+    # technique and the schema artifact itself. An extension may
+    # define one or more kinds; this one defines exactly `domain-story`.
+    const: domain-story
+  name:
+    $ref: "#/$defs/name"
+  description:
+    type: string
+  metadata:
+    # Mirrors the core's metadata shape: `labels` for tag-like
+    # identifiers, `annotations` for free-form tooling/provenance
+    # data. Distinct from the DS `annotation` field on actors, work
+    # objects and edges, which carries in-diagram text.
+    type: object
+    properties:
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+      annotations:
+        type: object
+        additionalProperties:
+          type: string
+    additionalProperties: false
+  scope:
+    $ref: "#/$defs/scopeDomain"
+  pointInTime:
+    # `as-is` – the current state of the domain as observed.
+    # `to-be` – the target state the story envisions.
+    type: string
+    enum: [as-is, to-be]
+  granularity:
+    # `coarse-grained` – high-level, few sentences per major flow.
+    # `fine-grained`   – detailed, one sentence per atomic step.
+    type: string
+    enum: [coarse-grained, fine-grained]
+  domainPurity:
+    # `pure`        – the domain as experienced by humans,
+    #                 independent of software support.
+    # `digitalized` – includes the software systems that participate
+    #                 in the domain.
+    type: string
+    enum: [pure, digitalized]
+  groups:
+    # Top-level registry. Membership is declared inline on elements
+    # (`groups: [name, ...]` on actors, work objects and edges).
+    # This registry carries only the group's identity and optional
+    # metadata – members are not listed here.
+    type: array
+    minItems: 1
+    items:
+      type: object
+      properties:
+        name:
+          $ref: "#/$defs/name"
+        description:
+          type: string
+        annotation:
+          type: string
+      required: [name]
+      additionalProperties: false
+  actors:
+    # Story-global cast: one entry = one actor icon in the entire
+    # story. Declaring an actor is only required when it carries an
+    # `annotation` or `groups` membership; otherwise actors are
+    # implicit via edge references.
+    type: array
+    minItems: 1
+    items:
+      type: object
+      properties:
+        name:
+          $ref: "#/$defs/name"
+        annotation:
+          type: string
+        groups:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/$defs/name"
+      required: [name]
+      additionalProperties: false
+  sentences:
+    # The numbered units of the story (DS-canon term). Order is
+    # given by `sequenceNumber`; duplicates are allowed and denote
+    # parallel sentences at the same position.
+    type: array
+    minItems: 1
+    items:
+      type: object
+      properties:
+        sequenceNumber:
+          type: integer
+          minimum: 1
+        workObjects:
+          # Per-sentence list: one entry = one work-object icon
+          # drawn in this sentence. The same name in a different
+          # sentence is a new instance with its own annotation,
+          # because DS re-draws work objects per sentence.
+          # Declaration is only required for work objects that
+          # carry an `annotation` or `groups` membership.
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              name:
+                $ref: "#/$defs/name"
+              annotation:
+                type: string
+              groups:
+                type: array
+                minItems: 1
+                items:
+                  $ref: "#/$defs/name"
+            required: [name]
+            additionalProperties: false
+        edges:
+          # Directed arrows. Each entry = one drawn arrow; direction
+          # is semantic (`to` identifies the target of the activity,
+          # not a layout hint). `label` carries the Activity text
+          # (verb, preposition, or conjunction) and is optional – an
+          # unlabeled arrow is legitimate when the relation is
+          # implicit from context.
+          #
+          # Flat list, not a tree. The DS sentence patterns – linear
+          # flows, collaboration (two actors acting on the same work
+          # object), conjunctions (multiple work objects in one
+          # activity), tool use (`using v`), and parallel arrows from
+          # a single node – are all expressible as independent edges
+          # without special-case structures. A tree would force
+          # asymmetric encodings for exactly those cases; the flat
+          # list maps 1:1 to the DS drawing, which is the primary
+          # reading mode.
+          type: array
+          minItems: 1
+          items:
+            type: object
+            properties:
+              from:
+                $ref: "#/$defs/nodeReference"
+              to:
+                $ref: "#/$defs/nodeReference"
+              label:
+                type: string
+              annotation:
+                type: string
+              groups:
+                type: array
+                minItems: 1
+                items:
+                  $ref: "#/$defs/name"
+            required: [from, to]
+            additionalProperties: false
+      required: [sequenceNumber, edges]
+      additionalProperties: false
+required: [apiVersion, kind, name, scope, sentences]
+unevaluatedProperties: false

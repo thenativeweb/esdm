@@ -1,0 +1,129 @@
+type: object
+properties:
+    name:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+    description:
+        type: string
+    given:
+        type: array
+        items:
+            oneOf:
+                - type: object
+                  properties:
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    aggregate:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    event:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    data:
+                        type: object
+                  required: [boundedContext, aggregate, event, data]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    event:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    data:
+                        type: object
+                  required: [boundedContext, event, data]
+                  additionalProperties: false
+    when:
+        oneOf:
+            - type: object
+              properties:
+                boundedContext:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                aggregate:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                event:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                data:
+                    type: object
+              required: [boundedContext, aggregate, event, data]
+              additionalProperties: false
+            - type: object
+              properties:
+                boundedContext:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                event:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                data:
+                    type: object
+              required: [boundedContext, event, data]
+              additionalProperties: false
+            - type: object
+              properties:
+                timer:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+              required: [timer]
+              additionalProperties: false
+    then:
+        type: object
+        properties:
+            emits:
+                type: array
+                items:
+                    oneOf:
+                        - type: object
+                          properties:
+                            boundedContext:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                            aggregate:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                            command:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                            data:
+                                type: object
+                          required: [boundedContext, aggregate, command]
+                          additionalProperties: false
+                        - type: object
+                          properties:
+                            boundedContext:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                            dynamicConsistencyBoundary:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                            command:
+                                type: string
+                                pattern: "^[a-z][a-z0-9-]*$"
+                            data:
+                                type: object
+                          required: [boundedContext, dynamicConsistencyBoundary, command]
+                          additionalProperties: false
+            setTimers:
+                type: array
+                items:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+            cancelTimers:
+                type: array
+                items:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+            state:
+                type: object
+            ended:
+                const: true
+        minProperties: 1
+        additionalProperties: false
+required: [name, when, then]
+additionalProperties: false

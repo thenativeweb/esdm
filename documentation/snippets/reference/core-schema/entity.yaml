@@ -1,0 +1,47 @@
+properties:
+    scope:
+        type: object
+        properties:
+            domain:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+            boundedContext:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [domain, boundedContext]
+        additionalProperties: false
+    schema:
+        type: object
+    identifiedBy:
+        oneOf:
+            - type: object
+              properties:
+                source:
+                    const: schema
+                field:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+              required: [source, field]
+              additionalProperties: false
+            - type: object
+              properties:
+                source:
+                    const: static
+                value:
+                    type: string
+                    minLength: 1
+              required: [source, value]
+              additionalProperties: false
+    invariants:
+        type: array
+        items:
+            type: object
+            properties:
+                name:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                rule:
+                    type: string
+            required: [name, rule]
+            additionalProperties: false
+required: [scope, schema, identifiedBy]

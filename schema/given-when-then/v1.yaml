@@ -1,0 +1,627 @@
+# Copyright (c) 2026 the native web GmbH. All rights reserved.
+#
+# Licensed under the MIT license.
+# Full terms: https://www.esdm.io/introduction/license/
+# This notice must not be removed.
+
+# Extension schema for Given-When-Then specifications.
+#
+# A `feature` document captures a set of behavioral scenarios about
+# one consistency unit – an `aggregate`, a `dynamic-consistency-
+# boundary`, a `process-manager`, or a `read-model`. Every scenario
+# follows the canonical Given/When/Then pattern: a list of preceding
+# events, a triggering action, and an expected outcome. Scenarios
+# are specifications, not part of the model itself; they live as a
+# separate extension so the modeling layer stays free of test
+# concerns.
+#
+# Lineage: Given/When/Then originated in BDD (Dan North) for general
+# behavioral specs; the event-sourced flavor – `Given <events>` →
+# `When <command|event|timer|query>` → `Then <events|...>` – traces
+# back to Greg Young's aggregate-test pattern and is the de-facto
+# format wherever event-sourced systems are tested. ESDM adopts that
+# flavor wholesale and extends it across DCBs, process managers and
+# read-models so each consistency unit has the same shape of
+# specification.
+#
+# Hybrid structure: a feature is a container, scenarios are its
+# elements. The hybrid mirrors `domain-story`'s container-of-
+# `sentences` shape and avoids both extremes – one document per
+# scenario (no fachliche Klammer, scope repeated everywhere) and a
+# bare list of scenarios (no narrative framing).
+#
+# For the extension mechanism (URL layout, dispatch on `apiVersion`,
+# symmetric path structure for core and extensions) see the header
+# comment of the core schema document.
+#
+# The four feature variants are distinguished by the discriminator
+# field inside `scope`: `aggregate`, `dynamicConsistencyBoundary`,
+# `processManager`, or `readModel`. Each variant fixes the form of
+# `given`, `when` and `then` on its scenarios:
+#
+#   - aggregate       Given <bare-event-names + data>; When { command,
+#                     data, actor? }; Then { events } | { rejection }.
+#   - dcb             Given <full eventReferences + data>; When
+#                     { command, data, actor? }; Then { events } |
+#                     { rejection }.
+#   - process-manager Given <full eventReferences + data>; When
+#                     { event, data } | { timer }; Then any of
+#                     { emits, setTimers, cancelTimers, state, ended }.
+#   - read-model      Given <full eventReferences + data>; When
+#                     { query, parameters }; Then { result } |
+#                     { readModel }.
+#
+# Cross-field references – `when.command` pointing at an existing
+# command, `then.rejection.invariant` at a named invariant on the
+# unit, `when.timer` at a declared timer on the process manager,
+# `when.actor` at an actor permitted by the command, event names in
+# `given`/`then.events` at known events – are modeling rules the
+# schema does not enforce. The linter mirrors them as separate
+# rules; see `rules/`.
+#
+# File convention: documents that follow this schema are stored as
+# `*.esdm.yaml` files, the same suffix as core documents; `kind`
+# (here always `feature`) disambiguates which schema each document
+# must validate against. Multiple documents may share one file,
+# separated by `---`. The `x-esdm-file-suffix` and
+# `x-esdm-document-separator` fields below expose these conventions
+# mechanically.
+#
+# Project layout: this extension lives under the shared `schemas/`
+# directory next to the core schema, at
+# `schemas/given-when-then/v1.yaml`. The `x-esdm-project-layout`
+# field restates the convention so generators can place extension
+# schemas consistently without guessing. See the core schema for
+# the full layout description.
+$id: "https://schema.esdm.io/given-when-then/v1"
+$schema: "https://json-schema.org/draft/2020-12/schema"
+# Per-schema SemVer revision; see the core schema for the rationale.
+# Extension revisions move independently of the core revision, mirroring
+# how extension `$id`s move independently of `core/v1`.
+x-esdm-schema-revision: "1.0.0"
+x-esdm-file-suffix: ".esdm.yaml"
+x-esdm-document-separator: "---"
+x-esdm-project-layout:
+  schemas-directory: "schemas"
+  schema-path-template: "schemas/{name}/{version}.yaml"
+description: "Extension schema for Given-When-Then specifications. A `feature` document groups scenarios about one consistency unit (`aggregate`, `dynamic-consistency-boundary`, `process-manager`, or `read-model`) under a single fachliche Klammer. Each scenario carries `given` (preceding events), `when` (a triggering command, event, timer, or query), and `then` (the expected outcome). The four feature variants are distinguished by the discriminator field inside `scope` (`aggregate`, `dynamicConsistencyBoundary`, `processManager`, `readModel`) – the chosen variant fixes the form of `given`, `when`, and `then` on every scenario. Aggregate features identify events by bare name (the feature's scope fixes the producing aggregate); DCB, process-manager and read-model features carry full event references because their preceding events may originate in other bounded contexts. Cross-field references (commands, events, queries, timers, actors, named invariants) are modeling rules the schema does not enforce; the linter checks them separately."
+
+$defs:
+  name:
+    # Inlined rather than `$ref`-ed into the core so the extension
+    # document validates in isolation. Same pattern as the core's
+    # `$defs/name`; the duplication is deliberate.
+    type: string
+    pattern: "^[a-z][a-z0-9-]*$"
+
+  scopeAggregate:
+    # Identifies one specific aggregate the feature is about. Same
+    # shape as the core's `scopeAggregate`. Inlined so the extension
+    # document validates in isolation.
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+      boundedContext:
+        $ref: "#/$defs/name"
+      aggregate:
+        $ref: "#/$defs/name"
+    required: [domain, boundedContext, aggregate]
+    additionalProperties: false
+
+  scopeDynamicConsistencyBoundary:
+    # Identifies one specific dynamic-consistency-boundary the
+    # feature is about. Same shape as the core's
+    # `scopeDynamicConsistencyBoundary`.
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+      boundedContext:
+        $ref: "#/$defs/name"
+      dynamicConsistencyBoundary:
+        $ref: "#/$defs/name"
+    required: [domain, boundedContext, dynamicConsistencyBoundary]
+    additionalProperties: false
+
+  scopeProcessManager:
+    # Identifies one specific process-manager the feature is about.
+    # Process managers are domain-scoped in the core (their `scope`
+    # is `scopeDomain`), so the identifier is `domain` plus the
+    # process-manager's name.
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+      processManager:
+        $ref: "#/$defs/name"
+    required: [domain, processManager]
+    additionalProperties: false
+
+  scopeReadModel:
+    # Identifies one specific read-model the feature is about.
+    # Read-models are bounded-context-scoped in the core, so the
+    # identifier is `domain` + `boundedContext` + read-model name.
+    type: object
+    properties:
+      domain:
+        $ref: "#/$defs/name"
+      boundedContext:
+        $ref: "#/$defs/name"
+      readModel:
+        $ref: "#/$defs/name"
+    required: [domain, boundedContext, readModel]
+    additionalProperties: false
+
+  scopedEventReference:
+    # Identifies an event across the domain – mirrors the core's
+    # `eventReference`. Two variants reflect the two ways an event
+    # can be scoped: aggregate-owned ({boundedContext, aggregate,
+    # event}) and free-standing within its bounded context
+    # ({boundedContext, event}). Used in `given` for non-aggregate
+    # features (DCB, process-manager, read-model) and in `when`
+    # of process-manager features.
+    oneOf:
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          aggregate:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+        required: [boundedContext, aggregate, event]
+        additionalProperties: false
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+        required: [boundedContext, event]
+        additionalProperties: false
+
+  scopedCommandReference:
+    # Identifies a command across the domain – mirrors the core's
+    # `commandReference`. Two variants reflect the two ways a
+    # command can be bound: aggregate-bound ({boundedContext,
+    # aggregate, command}) and DCB-bound ({boundedContext,
+    # dynamicConsistencyBoundary, command}). Used in `then.emits`
+    # of process-manager features.
+    oneOf:
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          aggregate:
+            $ref: "#/$defs/name"
+          command:
+            $ref: "#/$defs/name"
+          data:
+            type: object
+        required: [boundedContext, aggregate, command]
+        additionalProperties: false
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          dynamicConsistencyBoundary:
+            $ref: "#/$defs/name"
+          command:
+            $ref: "#/$defs/name"
+          data:
+            type: object
+        required: [boundedContext, dynamicConsistencyBoundary, command]
+        additionalProperties: false
+
+  bareGivenEvent:
+    # One Given entry for an aggregate feature: the event name plus
+    # its concrete payload value. The producing aggregate is fixed
+    # by the feature's scope, so the bare name suffices – mirrors
+    # the rationale behind `command.publishes` in the core.
+    type: object
+    properties:
+      event:
+        $ref: "#/$defs/name"
+      data:
+        # Concrete payload value, not a JSON Schema. Required so
+        # that a payload-less event must be expressed as `data: {}`
+        # rather than left implicit by omission.
+        type: object
+    required: [event, data]
+    additionalProperties: false
+
+  scopedGivenEvent:
+    # One Given entry for a DCB, process-manager, or read-model
+    # feature: the event reference (which may point at any
+    # producer in the domain) plus its concrete payload value.
+    oneOf:
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          aggregate:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+          data:
+            type: object
+        required: [boundedContext, aggregate, event, data]
+        additionalProperties: false
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+          data:
+            type: object
+        required: [boundedContext, event, data]
+        additionalProperties: false
+
+  bareExpectedEvent:
+    # One Then entry for an aggregate or DCB feature: the event
+    # name plus its concrete payload value. The feature's scope
+    # fixes the producer.
+    type: object
+    properties:
+      event:
+        $ref: "#/$defs/name"
+      data:
+        type: object
+    required: [event, data]
+    additionalProperties: false
+
+  rejection:
+    # An expected refusal of the When trigger. Either points at a
+    # named invariant of the unit under test (linkable, machine-
+    # checkable) or carries free-form prose (open, when no single
+    # invariant captures the cause). Picking either form is a
+    # modeling judgment per scenario.
+    oneOf:
+      - type: object
+        properties:
+          invariant:
+            $ref: "#/$defs/name"
+        required: [invariant]
+        additionalProperties: false
+      - type: object
+        properties:
+          reason:
+            type: string
+            minLength: 1
+        required: [reason]
+        additionalProperties: false
+
+  bareCommandWhen:
+    # When for aggregate and DCB features: a command name (bare,
+    # because the feature's scope fixes the consistency unit), a
+    # concrete payload value, and an optional actor – useful for
+    # permission-/exposure-style scenarios. The actor must be one
+    # of the command's `actors` (modeling rule; checked by the
+    # linter, not by the schema).
+    type: object
+    properties:
+      command:
+        $ref: "#/$defs/name"
+      data:
+        type: object
+      actor:
+        $ref: "#/$defs/name"
+    required: [command, data]
+    additionalProperties: false
+
+  processManagerWhen:
+    # When for process-manager features: either an incoming event
+    # delivered to the instance or the firing of a named timer.
+    # `event` carries a full reference because process managers
+    # consume events from any bounded context; `timer` is a bare
+    # name because timers are declared on the process manager
+    # itself.
+    oneOf:
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          aggregate:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+          data:
+            type: object
+        required: [boundedContext, aggregate, event, data]
+        additionalProperties: false
+      - type: object
+        properties:
+          boundedContext:
+            $ref: "#/$defs/name"
+          event:
+            $ref: "#/$defs/name"
+          data:
+            type: object
+        required: [boundedContext, event, data]
+        additionalProperties: false
+      - type: object
+        properties:
+          timer:
+            $ref: "#/$defs/name"
+        required: [timer]
+        additionalProperties: false
+
+  readModelWhen:
+    # When for read-model features: a query name (bare, because
+    # the feature's scope fixes the bounded context) plus
+    # concrete parameter values.
+    type: object
+    properties:
+      query:
+        $ref: "#/$defs/name"
+      parameters:
+        type: object
+    required: [query, parameters]
+    additionalProperties: false
+
+  unitThen:
+    # Then for aggregate and DCB features. Either a list of
+    # expected events (the empty list is legal and expresses
+    # idempotency – the trigger ran but produced no events) or
+    # an expected rejection.
+    oneOf:
+      - type: object
+        properties:
+          events:
+            type: array
+            items:
+              $ref: "#/$defs/bareExpectedEvent"
+        required: [events]
+        additionalProperties: false
+      - type: object
+        properties:
+          rejection:
+            $ref: "#/$defs/rejection"
+        required: [rejection]
+        additionalProperties: false
+
+  processManagerThen:
+    # Then for process-manager features. Any combination of the
+    # five effect categories – emitted commands, set timers,
+    # cancelled timers, the resulting instance state, or the
+    # instance ending. At least one field must be present so
+    # `then: {}` cannot stand for "nothing happens" silently.
+    type: object
+    properties:
+      emits:
+        type: array
+        items:
+          $ref: "#/$defs/scopedCommandReference"
+      setTimers:
+        type: array
+        items:
+          $ref: "#/$defs/name"
+      cancelTimers:
+        type: array
+        items:
+          $ref: "#/$defs/name"
+      state:
+        # Concrete state value of the instance after the reaction.
+        # Paradigm-agnostic; same conceptual shape as the core's
+        # `process-manager.state`, but here it is a value, not a
+        # JSON Schema.
+        type: object
+      ended:
+        # `true` when the reaction is expected to retire the
+        # instance (one of the `endsWhen` conditions holds after
+        # it). `false` is not meaningful – omit the field instead.
+        const: true
+    minProperties: 1
+    additionalProperties: false
+
+  readModelThen:
+    # Then for read-model features. Either the expected query
+    # result (the consumer-facing answer) or the expected read-
+    # model content (the projection, directly). Picking either
+    # form is a modeling judgment per scenario.
+    oneOf:
+      - type: object
+        properties:
+          result:
+            # Concrete result value of the query – list, object,
+            # or any paradigm-specific shape. Free-form because
+            # query result shapes are paradigm-specific.
+            true
+        required: [result]
+        additionalProperties: false
+      - type: object
+        properties:
+          readModel:
+            # Concrete content of the materialized read-model.
+            true
+        required: [readModel]
+        additionalProperties: false
+
+type: object
+properties:
+  apiVersion:
+    const: schema.esdm.io/given-when-then/v1
+  kind:
+    # The document kind. An extension may define one or more kinds;
+    # this one defines exactly `feature`. Distinct from the
+    # extension name `given-when-then`, which names the format and
+    # the schema artifact itself.
+    const: feature
+  name:
+    $ref: "#/$defs/name"
+  description:
+    type: string
+  metadata:
+    # Mirrors the core's metadata shape: `labels` for tag-like
+    # identifiers, `annotations` for free-form tooling/provenance
+    # data.
+    type: object
+    properties:
+      labels:
+        type: object
+        additionalProperties:
+          type: string
+      annotations:
+        type: object
+        additionalProperties:
+          type: string
+    additionalProperties: false
+  scope:
+    # The four variants are distinguished by which discriminator
+    # field is present – `aggregate`, `dynamicConsistencyBoundary`,
+    # `processManager`, or `readModel`. The chosen variant fixes
+    # the form of `given`, `when`, and `then` on every scenario;
+    # the binding sits in the top-level `allOf` block below.
+    oneOf:
+      - $ref: "#/$defs/scopeAggregate"
+      - $ref: "#/$defs/scopeDynamicConsistencyBoundary"
+      - $ref: "#/$defs/scopeProcessManager"
+      - $ref: "#/$defs/scopeReadModel"
+  scenarios:
+    # The scenarios that make up the feature. Order is informative,
+    # not semantic – each scenario stands on its own. `minItems: 1`
+    # because a feature without scenarios is an intention, not a
+    # specification; either write at least one scenario or do not
+    # model the feature yet.
+    type: array
+    minItems: 1
+    items:
+      type: object
+      properties:
+        name:
+          $ref: "#/$defs/name"
+        description:
+          type: string
+        given:
+          # Listed in append order – earlier entries precede later
+          # ones in the event log. The empty list is legal and
+          # expresses "no preceding history" (initial commands,
+          # process-manager start, fresh read-model). The
+          # variant-specific item shape – bare event names for
+          # aggregate features, full event references otherwise –
+          # is bound by the `allOf` block below.
+          type: array
+        when:
+          # The trigger that drives the scenario. Constrained at
+          # the top level only to "must be an object"; the
+          # variant-specific shape – command-shaped, event-or-
+          # timer-shaped, query-shaped – is bound by the `allOf`
+          # block below.
+          type: object
+        then:
+          # The expected outcome of the trigger. Constrained at
+          # the top level only to "must be an object"; the
+          # variant-specific shape – events/rejection,
+          # emits/setTimers/cancelTimers/state/ended, or
+          # result/readModel – is bound by the `allOf` block below.
+          type: object
+      required: [name, when, then]
+      additionalProperties: false
+required: [apiVersion, kind, name, scope, scenarios]
+unevaluatedProperties: false
+
+allOf:
+  - if:
+      properties:
+        scope:
+          required: [aggregate]
+      required: [scope]
+    then:
+      # Aggregate variant. The classic Greg-Young aggregate test:
+      # `Given <past events of this aggregate>` →
+      # `When <command on this aggregate>` →
+      # `Then <emitted events>` or `<rejection>`.
+      # `given` and `then.events` use bare event names because the
+      # feature's scope already fixes the producing aggregate;
+      # `when` is a `command` + `data` pair, with an optional
+      # `actor` for permission-style scenarios.
+      properties:
+        scenarios:
+          items:
+            properties:
+              given:
+                items:
+                  $ref: "#/$defs/bareGivenEvent"
+              when:
+                $ref: "#/$defs/bareCommandWhen"
+              then:
+                $ref: "#/$defs/unitThen"
+
+  - if:
+      properties:
+        scope:
+          required: [dynamicConsistencyBoundary]
+      required: [scope]
+    then:
+      # Dynamic-consistency-boundary variant. Same shape as the
+      # aggregate variant on the writer side – `when` is a command
+      # against the DCB, `then` is events or a rejection – but
+      # `given` carries full event references because a DCB
+      # consults events from many producers across its bounded
+      # context, not just from a single owning aggregate.
+      properties:
+        scenarios:
+          items:
+            properties:
+              given:
+                items:
+                  $ref: "#/$defs/scopedGivenEvent"
+              when:
+                $ref: "#/$defs/bareCommandWhen"
+              then:
+                $ref: "#/$defs/unitThen"
+
+  - if:
+      properties:
+        scope:
+          required: [processManager]
+      required: [scope]
+    then:
+      # Process-manager variant. Process managers are stateful
+      # coordinators with a richer reactive surface than a single
+      # aggregate, so `then` is the broadest of the four variants:
+      # any combination of emitted commands, set/canceled timers,
+      # the resulting instance state, and an `ended: true` marker.
+      # `when` accepts either an incoming event (full reference,
+      # because PMs consume events from any BC) or the firing of a
+      # named timer; `given` carries the full event history that
+      # produced the current instance state.
+      properties:
+        scenarios:
+          items:
+            properties:
+              given:
+                items:
+                  $ref: "#/$defs/scopedGivenEvent"
+              when:
+                $ref: "#/$defs/processManagerWhen"
+              then:
+                $ref: "#/$defs/processManagerThen"
+
+  - if:
+      properties:
+        scope:
+          required: [readModel]
+      required: [scope]
+    then:
+      # Read-model variant. Read-model tests answer "given this
+      # event history, what does the consumer see?". `when` is a
+      # named query plus parameters; `then` is either the expected
+      # `result` (consumer's view through the query) or the
+      # expected `readModel` (the materialized projection itself),
+      # with the modeler choosing the perspective per scenario.
+      # `given` uses full event references because projections in
+      # the core schema accept events from any BC.
+      properties:
+        scenarios:
+          items:
+            properties:
+              given:
+                items:
+                  $ref: "#/$defs/scopedGivenEvent"
+              when:
+                $ref: "#/$defs/readModelWhen"
+              then:
+                $ref: "#/$defs/readModelThen"

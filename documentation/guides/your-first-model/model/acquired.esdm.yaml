@@ -1,0 +1,17 @@
+apiVersion: schema.esdm.io/core/v1
+kind: event
+name: acquired
+scope:
+  domain: library
+  boundedContext: cataloging
+  aggregate: book
+data:
+  type: object
+  properties:
+    title: { type: string }
+    author: { type: string }
+    isbn: { type: string }
+  required: [title, author, isbn]
+metadata:
+  annotations:
+    cloudevents.type: io.eventsourcingdb.library.book-acquired

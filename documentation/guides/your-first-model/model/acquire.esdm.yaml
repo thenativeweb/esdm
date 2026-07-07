@@ -1,0 +1,16 @@
+apiVersion: schema.esdm.io/core/v1
+kind: command
+name: acquire
+scope:
+  domain: library
+  boundedContext: cataloging
+  aggregate: book
+data:
+  type: object
+  properties:
+    title: { type: string }
+    author: { type: string }
+    isbn: { type: string }
+  required: [title, author, isbn]
+publishes:
+  - acquired

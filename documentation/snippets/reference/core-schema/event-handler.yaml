@@ -1,0 +1,98 @@
+properties:
+    scope:
+        type: object
+        properties:
+            domain:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [domain]
+        additionalProperties: false
+    deliveryGuarantee:
+        type: string
+        enum: [at-least-once, at-most-once]
+    idempotency:
+        type: object
+        properties:
+            owner:
+                type: string
+                enum:
+                    - self
+                    - downstream
+                    - infrastructure
+                    - none
+                    - not-required
+            strategy:
+                type: string
+        required: [owner]
+        additionalProperties: false
+    handles:
+        type: array
+        minItems: 1
+        items:
+            oneOf:
+                - type: object
+                  properties:
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    aggregate:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    event:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [boundedContext, aggregate, event]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    event:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                  required: [boundedContext, event]
+                  additionalProperties: false
+    constraints:
+        type: array
+        items:
+            type: object
+            properties:
+                name:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                rule:
+                    type: string
+            required: [name, rule]
+            additionalProperties: false
+    sideEffects:
+        type: array
+        minItems: 1
+        items:
+            oneOf:
+                - properties:
+                    type:
+                        const: external-call
+                    externalSystem:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    rule:
+                        type: string
+                  required: [type, externalSystem, rule]
+                  additionalProperties: false
+                - properties:
+                    type:
+                        const: other
+                    rule:
+                        type: string
+                  required: [type, rule]
+                  additionalProperties: false
+required: [scope, deliveryGuarantee, handles, sideEffects]
+allOf:
+    - if:
+        properties:
+            deliveryGuarantee:
+                const: at-least-once
+        required: [deliveryGuarantee]
+      then:
+        required: [idempotency]

@@ -1,0 +1,450 @@
+type: object
+properties:
+    apiVersion:
+        const: schema.esdm.io/given-when-then/v1
+    kind:
+        const: feature
+    name:
+        type: string
+        pattern: "^[a-z][a-z0-9-]*$"
+    description:
+        type: string
+    metadata:
+        type: object
+        properties:
+            labels:
+                type: object
+                additionalProperties:
+                    type: string
+            annotations:
+                type: object
+                additionalProperties:
+                    type: string
+        additionalProperties: false
+    scope:
+        oneOf:
+            - type: object
+              properties:
+                domain:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                boundedContext:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                aggregate:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+              required: [domain, boundedContext, aggregate]
+              additionalProperties: false
+            - type: object
+              properties:
+                domain:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                boundedContext:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                dynamicConsistencyBoundary:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+              required: [domain, boundedContext, dynamicConsistencyBoundary]
+              additionalProperties: false
+            - type: object
+              properties:
+                domain:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                processManager:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+              required: [domain, processManager]
+              additionalProperties: false
+            - type: object
+              properties:
+                domain:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                boundedContext:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                readModel:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+              required: [domain, boundedContext, readModel]
+              additionalProperties: false
+    scenarios:
+        type: array
+        minItems: 1
+        items:
+            type: object
+            properties:
+                name:
+                    type: string
+                    pattern: "^[a-z][a-z0-9-]*$"
+                description:
+                    type: string
+                given:
+                    type: array
+                when:
+                    type: object
+                then:
+                    type: object
+            required: [name, when, then]
+            additionalProperties: false
+required: [apiVersion, kind, name, scope, scenarios]
+unevaluatedProperties: false
+allOf:
+    - if:
+        properties:
+            scope:
+                required: [aggregate]
+        required: [scope]
+      then:
+        properties:
+            scenarios:
+                items:
+                    properties:
+                        given:
+                            items:
+                                type: object
+                                properties:
+                                    event:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                    data:
+                                        type: object
+                                required: [event, data]
+                                additionalProperties: false
+                        when:
+                            type: object
+                            properties:
+                                command:
+                                    type: string
+                                    pattern: "^[a-z][a-z0-9-]*$"
+                                data:
+                                    type: object
+                                actor:
+                                    type: string
+                                    pattern: "^[a-z][a-z0-9-]*$"
+                            required: [command, data]
+                            additionalProperties: false
+                        then:
+                            oneOf:
+                                - type: object
+                                  properties:
+                                    events:
+                                        type: array
+                                        items:
+                                            type: object
+                                            properties:
+                                                event:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                                data:
+                                                    type: object
+                                            required: [event, data]
+                                            additionalProperties: false
+                                  required: [events]
+                                  additionalProperties: false
+                                - type: object
+                                  properties:
+                                    rejection:
+                                        oneOf:
+                                            - type: object
+                                              properties:
+                                                invariant:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                              required: [invariant]
+                                              additionalProperties: false
+                                            - type: object
+                                              properties:
+                                                reason:
+                                                    type: string
+                                                    minLength: 1
+                                              required: [reason]
+                                              additionalProperties: false
+                                  required: [rejection]
+                                  additionalProperties: false
+    - if:
+        properties:
+            scope:
+                required: [dynamicConsistencyBoundary]
+        required: [scope]
+      then:
+        properties:
+            scenarios:
+                items:
+                    properties:
+                        given:
+                            items:
+                                oneOf:
+                                    - type: object
+                                      properties:
+                                        boundedContext:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        aggregate:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        event:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        data:
+                                            type: object
+                                      required: [boundedContext, aggregate, event, data]
+                                      additionalProperties: false
+                                    - type: object
+                                      properties:
+                                        boundedContext:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        event:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        data:
+                                            type: object
+                                      required: [boundedContext, event, data]
+                                      additionalProperties: false
+                        when:
+                            type: object
+                            properties:
+                                command:
+                                    type: string
+                                    pattern: "^[a-z][a-z0-9-]*$"
+                                data:
+                                    type: object
+                                actor:
+                                    type: string
+                                    pattern: "^[a-z][a-z0-9-]*$"
+                            required: [command, data]
+                            additionalProperties: false
+                        then:
+                            oneOf:
+                                - type: object
+                                  properties:
+                                    events:
+                                        type: array
+                                        items:
+                                            type: object
+                                            properties:
+                                                event:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                                data:
+                                                    type: object
+                                            required: [event, data]
+                                            additionalProperties: false
+                                  required: [events]
+                                  additionalProperties: false
+                                - type: object
+                                  properties:
+                                    rejection:
+                                        oneOf:
+                                            - type: object
+                                              properties:
+                                                invariant:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                              required: [invariant]
+                                              additionalProperties: false
+                                            - type: object
+                                              properties:
+                                                reason:
+                                                    type: string
+                                                    minLength: 1
+                                              required: [reason]
+                                              additionalProperties: false
+                                  required: [rejection]
+                                  additionalProperties: false
+    - if:
+        properties:
+            scope:
+                required: [processManager]
+        required: [scope]
+      then:
+        properties:
+            scenarios:
+                items:
+                    properties:
+                        given:
+                            items:
+                                oneOf:
+                                    - type: object
+                                      properties:
+                                        boundedContext:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        aggregate:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        event:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        data:
+                                            type: object
+                                      required: [boundedContext, aggregate, event, data]
+                                      additionalProperties: false
+                                    - type: object
+                                      properties:
+                                        boundedContext:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        event:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        data:
+                                            type: object
+                                      required: [boundedContext, event, data]
+                                      additionalProperties: false
+                        when:
+                            oneOf:
+                                - type: object
+                                  properties:
+                                    boundedContext:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                    aggregate:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                    event:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                    data:
+                                        type: object
+                                  required: [boundedContext, aggregate, event, data]
+                                  additionalProperties: false
+                                - type: object
+                                  properties:
+                                    boundedContext:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                    event:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                    data:
+                                        type: object
+                                  required: [boundedContext, event, data]
+                                  additionalProperties: false
+                                - type: object
+                                  properties:
+                                    timer:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                  required: [timer]
+                                  additionalProperties: false
+                        then:
+                            type: object
+                            properties:
+                                emits:
+                                    type: array
+                                    items:
+                                        oneOf:
+                                            - type: object
+                                              properties:
+                                                boundedContext:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                                aggregate:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                                command:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                                data:
+                                                    type: object
+                                              required: [boundedContext, aggregate, command]
+                                              additionalProperties: false
+                                            - type: object
+                                              properties:
+                                                boundedContext:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                                dynamicConsistencyBoundary:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                                command:
+                                                    type: string
+                                                    pattern: "^[a-z][a-z0-9-]*$"
+                                                data:
+                                                    type: object
+                                              required: [boundedContext, dynamicConsistencyBoundary, command]
+                                              additionalProperties: false
+                                setTimers:
+                                    type: array
+                                    items:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                cancelTimers:
+                                    type: array
+                                    items:
+                                        type: string
+                                        pattern: "^[a-z][a-z0-9-]*$"
+                                state:
+                                    type: object
+                                ended:
+                                    const: true
+                            minProperties: 1
+                            additionalProperties: false
+    - if:
+        properties:
+            scope:
+                required: [readModel]
+        required: [scope]
+      then:
+        properties:
+            scenarios:
+                items:
+                    properties:
+                        given:
+                            items:
+                                oneOf:
+                                    - type: object
+                                      properties:
+                                        boundedContext:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        aggregate:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        event:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        data:
+                                            type: object
+                                      required: [boundedContext, aggregate, event, data]
+                                      additionalProperties: false
+                                    - type: object
+                                      properties:
+                                        boundedContext:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        event:
+                                            type: string
+                                            pattern: "^[a-z][a-z0-9-]*$"
+                                        data:
+                                            type: object
+                                      required: [boundedContext, event, data]
+                                      additionalProperties: false
+                        when:
+                            type: object
+                            properties:
+                                query:
+                                    type: string
+                                    pattern: "^[a-z][a-z0-9-]*$"
+                                parameters:
+                                    type: object
+                            required: [query, parameters]
+                            additionalProperties: false
+                        then:
+                            oneOf:
+                                - type: object
+                                  properties:
+                                    result: true
+                                  required: [result]
+                                  additionalProperties: false
+                                - type: object
+                                  properties:
+                                    readModel: true
+                                  required: [readModel]
+                                  additionalProperties: false

@@ -1,0 +1,59 @@
+properties:
+    scope:
+        type: object
+        properties:
+            domain:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+            boundedContext:
+                type: string
+                pattern: "^[a-z][a-z0-9-]*$"
+        required: [domain, boundedContext]
+        additionalProperties: false
+    projections:
+        type: array
+        minItems: 1
+        items:
+            oneOf:
+                - type: object
+                  properties:
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    aggregate:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    event:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    rule:
+                        type: string
+                  required: [boundedContext, aggregate, event, rule]
+                  additionalProperties: false
+                - type: object
+                  properties:
+                    boundedContext:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    event:
+                        type: string
+                        pattern: "^[a-z][a-z0-9-]*$"
+                    rule:
+                        type: string
+                  required: [boundedContext, event, rule]
+                  additionalProperties: false
+    paradigm:
+        type: string
+        enum:
+            - tabular
+            - document
+            - graph
+            - stream
+            - key-value
+            - search-index
+            - time-series
+            - column
+            - vector
+    schema:
+        type: object
+required: [scope, projections, schema]
