@@ -12,22 +12,22 @@ To get the latest version of ESDM, select your operating system and CPU architec
 
     | Architecture | Version | Download | Size | SHA256 |
     |--------------|---------|----------|------|--------|
-    | ARM64 | 0.13.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.13.0/esdm-darwin-arm64)** | 8.5 MB | `3677161511b7ec01a9828988d5d73bbd12ec3849f863a8d5b0c4dea74803f5b4` |
-    | x86 | 0.13.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.13.0/esdm-darwin-amd64)** | 9.1 MB | `9409e3ab094d8e85eeb88220184c5c0433a3f080259830c6e99d1c7064f736db` |
+    | ARM64 | 0.14.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.14.0/esdm-darwin-arm64)** | 8.5 MB | `b124e609df2c7066fb153b5ac294ef4bcf8fba2807eb3cbe2879c6debd958bf6` |
+    | x86 | 0.14.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.14.0/esdm-darwin-amd64)** | 9.1 MB | `f9ca09548b783b214b5455cc7bc2bb8aba373b84ac2670b209657898cc75c548` |
 
 === "Linux"
 
     | Architecture | Version | Download | Size | SHA256 |
     |--------------|---------|----------|------|--------|
-    | ARM64 | 0.13.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.13.0/esdm-linux-arm64)** | 8.3 MB | `770046e3e5cdf2973d1ceb41a0f064f065f92719a0e13f0ce6d08d272e561f64` |
-    | x86 | 0.13.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.13.0/esdm-linux-amd64)** | 9.0 MB | `32a7a8974c59169b52e471b7ab9fc43b7e8b93b0fe4b2fe72eb55b94d80e09f4` |
+    | ARM64 | 0.14.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.14.0/esdm-linux-arm64)** | 8.3 MB | `891fe719fa2ea24eef9ebd229b5032d769791ac926e091a2cacfd91520edbfb4` |
+    | x86 | 0.14.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.14.0/esdm-linux-amd64)** | 9.0 MB | `c0a786972300f6f7e71e645f009b8e7b8b7967c8837daf9e51f968e756e1716e` |
 
 === "Windows"
 
     | Architecture | Version | Download | Size | SHA256 |
     |--------------|---------|----------|------|--------|
-    | ARM64 | 0.13.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.13.0/esdm-windows-arm64.exe)** | 8.5 MB | `7ccbd46852782388e7056bcf549e95dd729bb399b6e12f4d34f7ff88a8321f22` |
-    | x86 | 0.13.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.13.0/esdm-windows-amd64.exe)** | 9.3 MB | `93ecf1e832ad311cb83d9632544ff29e0c8f7a54798c3d6f51d9f4868afc0f68` |
+    | ARM64 | 0.14.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.14.0/esdm-windows-arm64.exe)** | 8.5 MB | `b4c9b7744d3036977eec83f11ead009a0052028cd1eec53cb8e16db68b276909` |
+    | x86 | 0.14.0 | **[Download](https://esdm.s3.fr-par.scw.cloud/0.14.0/esdm-windows-amd64.exe)** | 9.3 MB | `95d6140572209fc3a52449180cd538da01475e97781580b1c1ed5933d0d2e2fb` |
 
 <!--
 Previous Versions block: add once the first 1.0.0 release ships, mirroring

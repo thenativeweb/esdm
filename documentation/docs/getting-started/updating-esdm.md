@@ -27,7 +27,7 @@ When you run any `esdm` command in an interactive terminal, the CLI checks **onc
 
 ### What Gets Sent
 
-The check fetches a **small static file** and nothing else. There's no analytics call, no machine identifier, no schema or model contents – the request looks like any other HTTP `GET` against a public URL. The response payload is a JSON document of the form `{"version": "0.13.0"}`.
+The check fetches a **small static file** and nothing else. There's no analytics call, no machine identifier, no schema or model contents – the request looks like any other HTTP `GET` against a public URL. The response payload is a JSON document of the form `{"version": "0.14.0"}`.
 
 ### When the Check Stays Quiet
 

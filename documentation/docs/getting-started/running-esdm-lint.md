@@ -70,7 +70,7 @@ A minimal **GitHub Actions** step that downloads the binary and lints the model 
 - name: Install ESDM
   run: |
     curl -sSL -o esdm \
-      https://esdm.s3.fr-par.scw.cloud/0.13.0/esdm-linux-amd64
+      https://esdm.s3.fr-par.scw.cloud/0.14.0/esdm-linux-amd64
     chmod a+x esdm
 
 - name: Lint ESDM model
