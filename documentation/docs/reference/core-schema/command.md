@@ -16,7 +16,7 @@ The `data` field is a JSON Schema object that describes the Command's payload. T
 
 The `publishes` array lists the bare Event names the Command may publish, with at least one entry. The names refer to Events declared in the same scope; the schema does not link them, but the linter does. Bareness is the rule here: a Command publishes Events into its own consistency unit, so naming the surrounding scope would be redundant.
 
-The optional `actors` array lists the Actor names permitted to issue this Command, with at least one entry when present. Authorization is descriptive in ESDM: the model says who is allowed to issue a Command, but does not say how that permission is enforced.
+The optional `actors` array lists the Actor names permitted to issue this Command, with at least one entry when present. Authorization is descriptive in ESDM: the model says who is allowed to issue a Command, but does not say how that permission is enforced. This is where authorization lives – on the Command, not as an invariant of the target unit: an invariant constrains the unit's state, whereas `actors` constrains who may issue the Command.
 
 The optional `constraints` array holds named rules that shape how `publishes` is emitted – ordering, conditional emission, mutual exclusivity. Each entry is `{ name, rule }`, where `rule` is prose. Constraints describe the relationship between the Command and its Events without prescribing implementation.
 

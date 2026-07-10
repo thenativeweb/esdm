@@ -2,7 +2,7 @@
 
 A **Command** is the expression of an intent to change the model. It is named in the **imperative** – `BorrowBook`, `CapturePayment`, `ReserveSeats` – and it targets exactly one consistency unit.
 
-Where an **[Event](/concepts/event.md)** records what happened, a Command requests what should happen. The Command can fail. It can be rejected by an invariant, refused by a permission check, or ignored as a duplicate. Only when it succeeds does an Event come into being.
+Where an **[Event](/concepts/event.md)** records what happened, a Command requests what should happen. The Command can fail: it can be rejected by an invariant, refused by a permission check, or ignored as a duplicate. A rejection comes from an **invariant** – a rule about the target's state – while a refusal comes from **authorization**, expressed through the Command's permitted issuers (`command.actors`), not as an invariant. Only when it succeeds does an Event come into being.
 
 ## Single Target
 
