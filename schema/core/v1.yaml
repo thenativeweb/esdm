@@ -724,7 +724,8 @@ allOf:
           # ("line-item quantity positive"), lifecycle invariants ("only open orders
           # accept item changes"), and event-payload invariants ("rescheduled delivery
           # moves strictly later"). Commands protect invariants implicitly – do not
-          # duplicate invariants as command-level rules.
+          # duplicate invariants as command-level rules. Authorization is not an
+          # invariant: who may issue a command lives in `command.actors`, not here.
           type: array
           items:
             $ref: "#/$defs/namedRule"
@@ -917,7 +918,9 @@ allOf:
           # names; a command's bounded-context scope (via its aggregate)
           # fixes the resolution context, mirroring `publishes`.
           # Captures *who*, not *how*: API surfaces (REST routes, gRPC
-          # services, transports) remain implementation. The list also
+          # services, transports) remain implementation. This is
+          # authorization, expressed here on the command, not as an
+          # invariant of the target unit. The list also
           # implicitly conveys exposure – a command whose only actor is a
           # `system` actor is internal-only; one that includes a public
           # `human` actor (e.g. `customer`) is externally callable. If
@@ -1420,7 +1423,9 @@ allOf:
           # Which actors are permitted to run this query. Bare actor
           # names; the query's bounded-context scope fixes resolution.
           # Captures *who*, not *how*: API surfaces (REST routes, gRPC
-          # services, transports) remain implementation. The list also
+          # services, transports) remain implementation. This is
+          # authorization – a model-level statement of who may run the
+          # query, nothing more. The list also
           # implicitly conveys exposure – a query whose only actor is a
           # `system` actor is internal-only; one that includes a public
           # `human` actor (e.g. `customer`) is externally callable. If
@@ -1625,7 +1630,8 @@ allOf:
       # Authorization mechanics (permissions, RBAC, OAuth scopes) and
       # identity (user IDs, sessions) are implementation concerns and
       # out of scope here. Whether an actor is allowed to issue a given
-      # command is later expressed on the command, not on the actor.
+      # command is later expressed on the command, not on the actor –
+      # and never as an invariant of the target unit.
       properties:
         scope:
           $ref: "#/$defs/scopeBoundedContext"

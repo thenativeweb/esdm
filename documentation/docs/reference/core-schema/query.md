@@ -18,7 +18,7 @@ The `result` field is a required JSON Schema object describing the Query's respo
 
 The optional `parameters` field is a JSON Schema object describing the Query's input parameters. Queries without parameters simply omit the field. The optional `paradigm` field hints at the paradigm used to describe `result`, choosing from `tabular`, `document`, `graph`, `stream`, `key-value`, `search-index`, `time-series`, `column`, or `vector`. As on Read Models, the hint is non-binding for the linter.
 
-The optional `actors` array lists the Actor names permitted to run the Query, with at least one entry when present. Authorization is descriptive: the model states who is allowed to run a Query, but does not enforce it.
+The optional `actors` array lists the Actor names permitted to run the Query, with at least one entry when present. Authorization is descriptive: the model states who is allowed to run a Query, but does not enforce it. As on a Command, this is authorization expressed through the permitted `actors` – a model-level statement of who may ask, nothing more.
 
 The optional `constraints` array holds named rules that shape the Query result – filtering, sorting, limiting, paradigm-specific traversal. Each entry is `{ name, rule }`, where `rule` is prose. A Query has no side effects and produces no Events; constraints describe how the result is computed, not what the Query changes.
 

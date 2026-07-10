@@ -10,6 +10,8 @@ An Aggregate is identified by a single field – its natural key. Every Command 
 
 Beyond identity, an Aggregate has **state** – the data it carries between Commands – and **invariants** – the rules that must hold over that state. Invariants are the reason Aggregates exist. They are the place where "you cannot withdraw from an empty account" or "a borrowed book cannot be borrowed again before it is returned" lives, and they are checked at the moment a Command is handled.
 
+Authorization is not among these rules. Who may issue a Command is expressed through the Command's permitted **[Actors](/concepts/actor.md)** (`command.actors`), not as an invariant: an invariant constrains what the Aggregate's state may become, not who may act on it.
+
 ## When Not to Use an Aggregate
 
 Not every consistency unit is an Aggregate. When the rule that must hold spans multiple Aggregates, a **[Dynamic Consistency Boundary](/concepts/dynamic-consistency-boundary.md)** is the right shape. When the behavior reacts to Events over time without owning state of its own, a **[Process Manager](/concepts/process-manager.md)** is the right shape. When the goal is to expose data for queries rather than to enforce a rule, a **[Read Model](/concepts/read-model.md)** is the right shape.

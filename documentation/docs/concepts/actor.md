@@ -12,4 +12,8 @@ A human Actor cannot also be backed by a system component – the model keeps th
 
 ## Actor and Permissions
 
-Actors are also where **authorization** can live. A Command that should only be issued by an administrator carries that constraint by listing only the administrative Actor as a permitted issuer. Business-level access policies (roles, scopes, tokens) belong to the runtime; what the model captures is which kinds of Actor are permitted in the first place – a useful baseline that runtime checks then build on.
+Actors are also how the model captures **authorization** – but the constraint lives on the Command, not on the Actor. A Command that should only be issued by an administrator carries that constraint by listing only the administrative Actor among its permitted issuers (`command.actors`); the Actor itself holds no permission list. Business-level access policies (roles, scopes, tokens) belong to the runtime; what the model captures is which kinds of Actor are permitted in the first place – a useful baseline that runtime checks then build on.
+
+## An Actor Is Not an Invariant
+
+An Actor answers *who or what issues a Command*; an invariant is a rule about a consistency unit's state that must always hold, checked when a Command is handled. The two are easy to conflate, because both can sound like rules – but **"only an administrator may cancel an order" is authorization, not an invariant**. Authorization is expressed through the Actors a Command permits (`command.actors`), not as an invariant of the unit. An invariant constrains what the unit's state may become; an Actor constrains who may ask.

@@ -13,3 +13,7 @@ In practice, this matters most when several callers consume the same Read Model.
 ## Query and Read Model
 
 Every Query references the Read Model it serves. The link goes both ways: every Query points to a Read Model that exists, and every Read Model that has Queries also has projections to feed them. A Query without a Read Model is a question without a source; a Read Model without Queries is a projection without consumers.
+
+## Who May Run a Query
+
+Like a Command, a Query records who is allowed to run it: the permitted **[Actors](/concepts/actor.md)** are listed on the Query (`query.actors`). This is **authorization** – in the model it is descriptive: it states who may ask, but it does not enforce the check.
