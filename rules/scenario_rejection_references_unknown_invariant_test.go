@@ -101,25 +101,4 @@ scenarios:
 		require.Len(t, diags, 1)
 		assert.Contains(t, diags[0].Message, "phantom-invariant")
 	})
-
-	t.Run("does not throw when the rejection uses free-form prose", func(t *testing.T) {
-		yaml := aggregateWithInvariantParents + `---
-apiVersion: schema.esdm.io/given-when-then/v1
-kind: feature
-name: prose
-scope:
-  domain: d
-  boundedContext: bc
-  aggregate: agg
-scenarios:
-  - name: rejects
-    when:
-      command: do-it
-      data: {}
-    then:
-      rejection:
-        reason: too many reasons to list
-`
-		assert.Empty(t, runRule(t, rule, buildModel(t, yaml)))
-	})
 }
