@@ -21,7 +21,7 @@ func (*scenarioRejectionReferencesUnknownInvariantRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioRejectionReferencesUnknownInvariant,
 		Severity:    diag.SeverityError,
-		Description: "When a scenario's then.rejection points at a named invariant, that invariant must appear in the targeted unit's invariants list. Free-form rejection prose (then.rejection.reason) is exempt.",
+		Description: "When a scenario's then.rejection points at a named invariant, that invariant must appear in the targeted unit's invariants list.",
 	}
 }
 
