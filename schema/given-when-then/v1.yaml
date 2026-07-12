@@ -273,25 +273,17 @@ $defs:
     additionalProperties: false
 
   rejection:
-    # An expected refusal of the When trigger. Either points at a
-    # named invariant of the unit under test (linkable, machine-
-    # checkable) or carries free-form prose (open, when no single
-    # invariant captures the cause). Picking either form is a
-    # modeling judgment per scenario.
-    oneOf:
-      - type: object
-        properties:
-          invariant:
-            $ref: "#/$defs/name"
-        required: [invariant]
-        additionalProperties: false
-      - type: object
-        properties:
-          reason:
-            type: string
-            minLength: 1
-        required: [reason]
-        additionalProperties: false
+    # An expected refusal of the When trigger. It points at a named
+    # invariant of the unit under test (linkable, machine-checkable) –
+    # every rejection anchors to a named invariant, so the cause is
+    # always traceable, and authorization stays out of it (that lives
+    # on the command's actors, not in a rejection).
+    type: object
+    properties:
+      invariant:
+        $ref: "#/$defs/name"
+    required: [invariant]
+    additionalProperties: false
 
   bareCommandWhen:
     # When for aggregate and DCB features: a command name (bare,
