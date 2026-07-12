@@ -79,6 +79,7 @@ func Catalog() []Rule {
 		newScenarioReferencesUnknownActorRule(),
 		newScenarioActorNotPermittedRule(),
 		newScenarioRejectionReferencesUnknownInvariantRule(),
+		newUncoveredInvariantRule(),
 		newScenarioWhenMismatchedFeatureScopeRule(),
 		newScenarioThenMismatchedFeatureScopeRule(),
 	}

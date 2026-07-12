@@ -10,6 +10,12 @@ Use the Given-When-Then extension when you want to write down concrete behavior 
 
 The Scenarios live alongside the model, in the same `.esdm.yaml` files, version-controlled with the rest of the code. They double as living documentation and as input for tests – an implementation can run the Scenarios as fixtures and verify that the system actually produces the Events the spec calls for.
 
+## Invariants and Scenarios
+
+A prose invariant and a Scenario play different, complementary roles. An **invariant defines the rule** – it lives on the consistency unit in the core model and always holds. A **Scenario verifies that rule by example**: a rejection points at the named invariant it exercises, through `then.rejection.invariant`.
+
+Once a unit is covered by Given-When-Then, every one of its named invariants should be exercised by at least one Scenario – an invariant that no Scenario rejects against is an untested rule. A unit with no Given-When-Then Feature carries no such expectation; Given-When-Then stays optional.
+
 ## The Four Variants
 
 A Feature is **about one consistency unit**, and the unit's kind shapes the Scenarios. The four variants are:
