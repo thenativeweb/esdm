@@ -109,6 +109,7 @@ nav:
       - Overview: recipes/overview.md
   - Reference:
       - CLI: reference/cli.md
+      - Reference Notation: reference/reference-notation.md
       - Core Schema:
           - Overview: reference/core-schema/overview.md
           - actor: reference/core-schema/actor.md
