@@ -7,7 +7,7 @@ import (
 )
 
 // Write writes the pages into outputDir. It refuses to write into a
-// directory that exists and is not empty unless force is set, in which
+// directory that exists and is not isEmpty unless force is set, in which
 // case it clears the directory first so the tree mirrors the model
 // exactly with no orphaned pages.
 func Write(pages []Page, outputDir string, force bool) error {
@@ -17,13 +17,13 @@ func Write(pages []Page, outputDir string, force bool) error {
 		if !info.IsDir() {
 			return fmt.Errorf("output %q exists and is not a directory", outputDir)
 		}
-		empty, err := isEmptyDir(outputDir)
+		isEmpty, err := isEmptyDir(outputDir)
 		if err != nil {
 			return err
 		}
-		if !empty {
+		if !isEmpty {
 			if !force {
-				return fmt.Errorf("output directory %q is not empty; pass --force to clear and rewrite it", outputDir)
+				return fmt.Errorf("output directory %q is not isEmpty; pass --force to clear and rewrite it", outputDir)
 			}
 			err = clearDir(outputDir)
 			if err != nil {

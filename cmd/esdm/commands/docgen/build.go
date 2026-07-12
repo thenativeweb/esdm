@@ -39,7 +39,8 @@ type node struct {
 	kind        string
 	name        string
 	description string
-	segs        []string
+	segments    []string
+	view        any
 	children    []*node
 }
 
@@ -52,19 +53,36 @@ type node struct {
 func Build(m *model.Model, p modelpath.Path) ([]Page, error) {
 	top := buildTopLevel(m)
 
-	if len(p.Segments) == 0 {
-		pages := []Page{{Path: "README.md", Content: renderRoot(top)}}
-		collectPages(top, &pages)
-		return pages, nil
+	var roots []*node
+	isWholeModel := len(p.Segments) == 0
+	if isWholeModel {
+		roots = top
+	} else {
+		target, err := narrow(top, p.Segments)
+		if err != nil {
+			return nil, err
+		}
+		roots = []*node{target}
 	}
 
-	target, err := narrow(top, p.Segments)
-	if err != nil {
-		return nil, err
+	var emitted []*node
+	flatten(roots, &emitted)
+
+	// The path index maps an element's containment path to the file
+	// its page lives in, so a cross-link resolves to a page only when
+	// that page is part of this (possibly narrowed) output.
+	index := map[string]string{}
+	for _, n := range emitted {
+		index[strings.Join(n.segments, "/")] = n.filePath()
 	}
 
 	var pages []Page
-	collectPages([]*node{target}, &pages)
+	if isWholeModel {
+		pages = append(pages, Page{Path: "README.md", Content: renderRoot(top)})
+	}
+	for _, n := range emitted {
+		pages = append(pages, Page{Path: n.filePath(), Content: renderPage(n, index)})
+	}
 	return pages, nil
 }
 
@@ -82,7 +100,7 @@ func buildTopLevel(m *model.Model) []*node {
 		top = append(top, &node{
 			kind:     "context-mappings",
 			name:     "context-mapping",
-			segs:     []string{"context-mapping"},
+			segments: []string{"context-mapping"},
 			children: mappings,
 		})
 	}
@@ -198,17 +216,17 @@ func buildDcbChildren(m *model.Model, domain, boundedContext, dcb string) []*nod
 }
 
 // buildFeatures builds the features that target the element at
-// parentSegs, identified by its kind, domain, bounded context, and
+// parentSegments, identified by its kind, domain, bounded context, and
 // name.
-func buildFeatures(m *model.Model, parentSegs []string, kind, domain, boundedContext, target string) []*node {
+func buildFeatures(m *model.Model, parentSegments []string, kind, domain, boundedContext, target string) []*node {
 	var out []*node
 	for _, feature := range sortedByName(m.Extensions.GivenWhenThen.Features) {
 		featureKind, featureDomain, featureBC, featureTarget := featureParent(feature)
 		if featureKind != kind || featureDomain != domain || featureBC != boundedContext || featureTarget != target {
 			continue
 		}
-		segs := append(append([]string{}, parentSegs...), bareName(feature))
-		out = append(out, newNode("feature", segs, feature, nil))
+		segments := append(append([]string{}, parentSegments...), bareName(feature))
+		out = append(out, newNode("feature", segments, feature, nil))
 	}
 	return out
 }
@@ -273,33 +291,35 @@ func narrow(nodes []*node, segments []string) (*node, error) {
 	return matched, nil
 }
 
-// collectPages walks the tree and appends one page per node.
-func collectPages(nodes []*node, pages *[]Page) {
+// flatten appends every node in the trees to out, depth first.
+func flatten(nodes []*node, out *[]*node) {
 	for _, n := range nodes {
-		*pages = append(*pages, Page{Path: n.filePath(), Content: renderPage(n)})
-		collectPages(n.children, pages)
+		*out = append(*out, n)
+		flatten(n.children, out)
 	}
 }
 
 // filePath is the node's relative slash path: a README.md index inside
 // a directory when the node has children, otherwise a <name>.md leaf.
 func (n *node) filePath() string {
-	joined := strings.Join(n.segs, "/")
+	joined := strings.Join(n.segments, "/")
 	if len(n.children) > 0 {
 		return joined + "/README.md"
 	}
 	return joined + ".md"
 }
 
-// newNode builds a node from a view, reading its name and description.
-func newNode(kind string, segs []string, view documented, children []*node) *node {
+// newNode builds a node from a view, reading its name and description
+// and keeping the view for kind-specific detail rendering.
+func newNode(kind string, segments []string, view documented, children []*node) *node {
 	name, _ := view.Name().Text()
 	description, _ := view.Description().Text()
 	return &node{
 		kind:        kind,
 		name:        name,
 		description: strings.TrimSpace(description),
-		segs:        segs,
+		segments:    segments,
+		view:        view,
 		children:    children,
 	}
 }

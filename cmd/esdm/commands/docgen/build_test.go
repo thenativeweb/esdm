@@ -257,3 +257,63 @@ func TestBuild(t *testing.T) {
 		assert.True(t, strings.Contains(err.Error(), "acquired"))
 	})
 }
+
+func TestDetails(t *testing.T) {
+	t.Run("renders an aggregate's identity and state fields", func(t *testing.T) {
+		m := loadModel(t, modelYAML)
+
+		pages, err := docgen.Build(m, modelpath.Path{})
+		require.NoError(t, err)
+
+		book := pageByPath(t, pages, "library/cataloging/book/README.md")
+		assert.Contains(t, book.Content, "## Identity")
+		assert.Contains(t, book.Content, "`isbn` field, from the state")
+		assert.Contains(t, book.Content, "## State")
+		assert.Contains(t, book.Content, "- `title`")
+	})
+
+	t.Run("renders a command's payload and links its published events", func(t *testing.T) {
+		m := loadModel(t, modelYAML)
+
+		pages, err := docgen.Build(m, modelpath.Path{})
+		require.NoError(t, err)
+
+		acquire := pageByPath(t, pages, "library/cataloging/book/acquire.md")
+		assert.Contains(t, acquire.Content, "## Payload")
+		assert.Contains(t, acquire.Content, "## Publishes")
+		assert.Contains(t, acquire.Content, "- [acquired](acquired.md)")
+	})
+
+	t.Run("links a read model's projections to the projected events", func(t *testing.T) {
+		m := loadModel(t, modelYAML)
+
+		pages, err := docgen.Build(m, modelpath.Path{})
+		require.NoError(t, err)
+
+		books := pageByPath(t, pages, "library/cataloging/books.md")
+		assert.Contains(t, books.Content, "## Paradigm")
+		assert.Contains(t, books.Content, "## Projections")
+		assert.Contains(t, books.Content, "- [acquired](book/acquired.md):")
+	})
+
+	t.Run("links a query to its read model", func(t *testing.T) {
+		m := loadModel(t, modelYAML)
+
+		pages, err := docgen.Build(m, modelpath.Path{})
+		require.NoError(t, err)
+
+		listBooks := pageByPath(t, pages, "library/cataloging/list-books.md")
+		assert.Contains(t, listBooks.Content, "## Read Model")
+		assert.Contains(t, listBooks.Content, "[books](books.md)")
+	})
+
+	t.Run("falls back to the reference when a linked target is outside the output", func(t *testing.T) {
+		m := loadModel(t, modelYAML)
+
+		pages, err := docgen.Build(m, modelpath.Path{Segments: []string{"library", "cataloging", "books"}})
+		require.NoError(t, err)
+
+		books := pageByPath(t, pages, "library/cataloging/books.md")
+		assert.Contains(t, books.Content, "`esdm:library/cataloging/book/acquired`")
+	})
+}

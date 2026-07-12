@@ -64,8 +64,8 @@ func renderRoot(top []*node) string {
 }
 
 // renderPage renders one element's page: its name, reference,
-// description, and an index of its children.
-func renderPage(n *node) string {
+// description, kind-specific details, and an index of its children.
+func renderPage(n *node, index map[string]string) string {
 	var b strings.Builder
 
 	if n.kind == "context-mappings" {
@@ -75,10 +75,11 @@ func renderPage(n *node) string {
 	}
 
 	fmt.Fprintf(&b, "# %s\n\n", n.name)
-	fmt.Fprintf(&b, "Reference: `esdm:%s` (%s)\n", strings.Join(n.segs, "/"), n.kind)
+	fmt.Fprintf(&b, "Reference: `esdm:%s` (%s)\n", strings.Join(n.segments, "/"), n.kind)
 	if n.description != "" {
 		fmt.Fprintf(&b, "\n%s\n", n.description)
 	}
+	renderDetails(&b, n, index)
 	renderContents(&b, n.filePath(), n.children)
 
 	return b.String()
