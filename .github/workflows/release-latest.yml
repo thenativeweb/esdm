@@ -43,7 +43,7 @@ jobs:
           fetch-depth: '0'
       - name: Get next version
         id: get-next-version
-        uses: thenativeweb/get-next-version@2.7.2
+        uses: thenativeweb/get-next-version@2.7.3
 
   release:
     name: Release latest
@@ -109,24 +109,24 @@ jobs:
               --no-progress
           done
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4.1.0
+        uses: docker/setup-qemu-action@v4.2.0
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.1.0
+        uses: docker/setup-buildx-action@v4.2.0
       - name: Login to GitHub container registry
-        uses: docker/login-action@v4.2.0
+        uses: docker/login-action@v4.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Login to Docker Hub registry
-        uses: docker/login-action@v4.2.0
+        uses: docker/login-action@v4.4.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Generate version.json
         run: make generate-version-json
       - name: Build and push documentation
-        uses: docker/build-push-action@v7.2.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: ./documentation/
           platforms: linux/amd64,linux/arm64
@@ -139,7 +139,7 @@ jobs:
             thenativeweb/esdm-documentation:latest
             thenativeweb/esdm-documentation:${{ needs.get-next-version.outputs.version }}
       - name: Build and push schema host
-        uses: docker/build-push-action@v7.2.0
+        uses: docker/build-push-action@v7.3.0
         with:
           context: ./schema/
           platforms: linux/amd64,linux/arm64
