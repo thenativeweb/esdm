@@ -3,6 +3,7 @@ package root
 import (
 	"github.com/spf13/cobra"
 	"github.com/thenativeweb/esdm/cmd/esdm/commands/addschema"
+	"github.com/thenativeweb/esdm/cmd/esdm/commands/docgen"
 	"github.com/thenativeweb/esdm/cmd/esdm/commands/glossary"
 	"github.com/thenativeweb/esdm/cmd/esdm/commands/lint"
 	"github.com/thenativeweb/esdm/cmd/esdm/commands/updateschema"
@@ -12,6 +13,7 @@ import (
 
 func init() {
 	Command.AddCommand(addschema.Command)
+	Command.AddCommand(docgen.Command)
 	Command.AddCommand(glossary.Command)
 	Command.AddCommand(lint.Command)
 	Command.AddCommand(updateschema.Command)

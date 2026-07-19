@@ -82,6 +82,7 @@ nav:
       - Running esdm lint: getting-started/running-esdm-lint.md
       - Running esdm view: getting-started/running-esdm-view.md
       - Running esdm glossary: getting-started/running-esdm-glossary.md
+      - Running esdm documentation: getting-started/running-esdm-documentation.md
       - Editor Support: getting-started/editor-support.md
   - Concepts:
       - Overview: concepts/overview.md
