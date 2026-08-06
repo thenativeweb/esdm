@@ -18,6 +18,34 @@ esdm add-schema
 
 The command refuses to run if a `schemas/` directory already exists. Refreshing an existing one is the job of `esdm update-schema`; refusing here keeps the two paths cleanly separated and prevents an accidental overwrite of edited or pinned schema files.
 
+## `esdm documentation`
+
+### Invocation
+
+```shell
+esdm documentation [path] [flags]
+```
+
+### Anatomy
+
+`esdm documentation` renders an ESDM model as a Markdown directory tree written to an output directory. Every element becomes one page, placed at its containment path: a Domain, Bounded Context, or Aggregate becomes a directory with a `README.md` index, and a leaf element such as a Command or Event becomes `<name>.md`. Each page carries the element's reference, the detail the model records for its kind – aligned with `esdm view --with-details` – and relative links to the elements it names, so the tree is navigable on GitHub and in a static-site generator alike.
+
+The output directory is required and is selected with `-o` / `--output`; there is no default, so a whole tree is never written by accident. The directory holding the model to read is selected with `-d` / `--directory`, defaulting to the current working directory.
+
+The optional `[path]` argument narrows the output to a sub-region of the model, using the same path shape as `esdm view` – Domain, then Bounded Context, then the elements inside. The narrowed pages keep their full containment paths, so they still line up with their references. A segment that names no such element, or that reaches below a leaf, is rejected as invalid input.
+
+So that the tree mirrors the model exactly, `esdm documentation` refuses to write into an output directory that exists and is not empty. Passing `--force` clears the directory first and then writes the fresh tree; because that removes the directory's existing contents, `--output` should point at a directory that holds only generated documentation.
+
+Linter findings do not block the output; as long as the model resolves, the command renders whatever it finds. The exit code is `0` on success. It is non-zero only when the path argument is invalid, when the output directory is not empty and `--force` was not given, or when the model cannot be resolved at all – run `esdm lint` to find out why in the last case.
+
+Typical invocations look like this:
+
+```shell
+esdm documentation --output ./docs
+esdm documentation --output ./docs <domain>/<bounded-context>
+esdm documentation --output ./docs --force
+```
+
 ## `esdm glossary`
 
 ### Invocation
