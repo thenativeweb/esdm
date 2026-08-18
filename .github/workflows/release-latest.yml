@@ -43,7 +43,7 @@ jobs:
           fetch-depth: '0'
       - name: Get next version
         id: get-next-version
-        uses: thenativeweb/get-next-version@2.7.6
+        uses: thenativeweb/get-next-version@2.7.7
 
   release:
     name: Release latest
