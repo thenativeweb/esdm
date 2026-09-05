@@ -1,6 +1,6 @@
 module github.com/thenativeweb/esdm
 
-go 1.26.2
+go 1.27.1
 
 require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
@@ -21,7 +21,7 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/tools v0.48.0 // indirect
 	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
-	honnef.co/go/tools v0.6.1 // indirect
+	honnef.co/go/tools v0.8.1 // indirect
 )
 
 tool honnef.co/go/tools/cmd/staticcheck
