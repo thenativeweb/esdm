@@ -98,24 +98,39 @@ func schemaSummary(schemaNode ast.Node) string {
 // first segment must match a domain; subsequent segments
 // follow the natural containment hierarchy. An unknown
 // segment returns an error.
+//
+// A segment is matched by name alone, and a name is not
+// unique at a position today: an entity and an actor may
+// both be called `customer`, an aggregate and a DCB may
+// both be called `order`. The walk therefore keeps every
+// match at each depth and continues below all of them,
+// so that no sibling is hidden by the accident of which
+// kind the builder appends first. Several final matches
+// are returned under a synthetic root, which the renderer
+// shows transparently - the collision becomes visible in
+// the output instead of silently resolving to one side.
 func narrow(root *Node, segments []string) (*Node, error) {
-	cursor := root
+	frontier := []*Node{root}
 	for i, seg := range segments {
-		var next *Node
-		for _, child := range cursor.Children {
-			if child.Name == seg {
-				next = child
-				break
+		var matches []*Node
+		for _, parent := range frontier {
+			for _, child := range parent.Children {
+				if child.Name == seg {
+					matches = append(matches, child)
+				}
 			}
 		}
-		if next == nil {
+		if len(matches) == 0 {
 			matched := strings.Join(segments[:i], "/")
 			if matched == "" {
 				return nil, fmt.Errorf("no entity %q under model root", seg)
 			}
 			return nil, fmt.Errorf("no entity %q under %q", seg, matched)
 		}
-		cursor = next
+		frontier = matches
 	}
-	return cursor, nil
+	if len(frontier) == 1 {
+		return frontier[0], nil
+	}
+	return &Node{Kind: "model", Children: frontier}, nil
 }

@@ -521,6 +521,33 @@ func TestViewCommand(t *testing.T) {
 		assert.NotContains(t, out, "domain shop")
 	})
 
+	t.Run("renders every sibling that matches a path segment", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", sameNamedSiblingsYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/ordering/customer"})
+		require.NoError(t, err)
+		assert.Contains(t, out, "entity customer")
+		assert.Contains(t, out, "actor customer")
+	})
+
+	t.Run("continues the walk below every matching sibling", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", sameNamedSiblingsYAML)
+
+		both, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/ordering/order"})
+		require.NoError(t, err)
+		assert.Contains(t, both, "aggregate order")
+		assert.Contains(t, both, "dynamic-consistency-boundary order")
+
+		// `reserve` lives under the DCB, which is not the
+		// first sibling named `order`.
+		below, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/ordering/order/reserve"})
+		require.NoError(t, err)
+		assert.Contains(t, below, "command reserve")
+		assert.NotContains(t, below, "aggregate order")
+	})
+
 	t.Run("returns an error for an unknown path segment", func(t *testing.T) {
 		dir := t.TempDir()
 		writeMinimalModel(t, dir)
@@ -770,3 +797,62 @@ func hasNodeOfKind(out, kind string) bool {
 	pattern := regexp.MustCompile(`(?m)^[\s│├└─]*` + regexp.QuoteMeta(kind) + ` `)
 	return pattern.MatchString(out)
 }
+
+// sameNamedSiblingsYAML has two pairs of same-named siblings
+// of different kinds at one position: an entity and an
+// actor both named `customer`, and an aggregate and a DCB
+// both named `order`. The model lints clean today, because
+// uniqueness is only checked per kind (see #19).
+const sameNamedSiblingsYAML = minimalDomainYAML + `---
+apiVersion: schema.esdm.io/core/v1
+kind: entity
+name: customer
+scope:
+  domain: shop
+  boundedContext: ordering
+schema:
+  type: object
+  properties:
+    id:
+      type: string
+identifiedBy:
+  source: schema
+  field: id
+---
+apiVersion: schema.esdm.io/core/v1
+kind: dynamic-consistency-boundary
+name: order
+scope:
+  domain: shop
+  boundedContext: ordering
+identifiedBy:
+  - name: id
+    source: static
+    value: solo
+consults:
+  - boundedContext: ordering
+    aggregate: order
+    event: placed
+    criteria: relevant
+---
+apiVersion: schema.esdm.io/core/v1
+kind: command
+name: reserve
+scope:
+  domain: shop
+  boundedContext: ordering
+  dynamicConsistencyBoundary: order
+data:
+  type: object
+publishes:
+  - reserved
+---
+apiVersion: schema.esdm.io/core/v1
+kind: event
+name: reserved
+scope:
+  domain: shop
+  boundedContext: ordering
+data:
+  type: object
+`
