@@ -59,7 +59,7 @@ Save this as `book.esdm.yaml`.
 
 ## The Event
 
-An Event is the immutable record of a fact that happened. The Aggregate is `book`, so the Event's scope is `book`-bound. The Event itself is named **`acquired`**, not `book-acquired`: the surrounding scope already conveys the Aggregate, so a `book-` prefix would be redundant – ESDM's linter actively discourages it.
+An Event is the immutable record of a fact that happened. The Aggregate is `book`, so the Event's scope is `book`-bound. The Event itself is named **`acquired`**, not `book-acquired`: the surrounding scope already conveys the Aggregate, so a `book-` prefix would be redundant – ESDM's linter actively discourages it. The **[Naming](/concepts/event.md#naming)** section of the Event concept explains how the bare name and the Aggregate combine once the Event leaves the model.
 
 ```yaml
 --8<-- "your-first-model/model/acquired.esdm.yaml"
