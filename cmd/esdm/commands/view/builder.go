@@ -44,7 +44,6 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 	n := &Node{
 		Kind:     "domain",
 		Name:     name,
-		Key:      name,
 		Location: nameLocation(d),
 	}
 
@@ -133,13 +132,11 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 func buildSubdomain(s model.SubdomainView, withDetails bool) *Node {
 	name, _ := s.Name().Text()
 	subType, _ := s.Type().Text()
-	domain := scopeText(s.Scope(), "domain")
 
 	n := &Node{
 		Kind:     "subdomain",
 		Name:     name,
 		Tags:     []string{subType},
-		Key:      domain + "/" + name,
 		Location: nameLocation(s),
 	}
 	var bcs []string
@@ -166,7 +163,6 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 	n := &Node{
 		Kind:     "bounded-context",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(boundedContext),
 	}
 
@@ -277,7 +273,6 @@ func buildAggregate(m *model.Model, aggregate model.AggregateView, withDetails b
 	n := &Node{
 		Kind:     "aggregate",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(aggregate),
 	}
 
@@ -336,7 +331,6 @@ func buildDCB(m *model.Model, dcb model.DynamicConsistencyBoundaryView, withDeta
 	n := &Node{
 		Kind:     "dynamic-consistency-boundary",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(dcb),
 	}
 
@@ -365,8 +359,6 @@ func buildDCB(m *model.Model, dcb model.DynamicConsistencyBoundaryView, withDeta
 
 func buildCommand(cmd model.CommandView, withDetails bool) *Node {
 	name, _ := cmd.Name().Text()
-	domain := scopeText(cmd.Scope(), "domain")
-	boundedContext := scopeText(cmd.Scope(), "boundedContext")
 	parent := scopeText(cmd.Scope(), "aggregate")
 	if parent == "" {
 		parent = scopeText(cmd.Scope(), "dynamicConsistencyBoundary")
@@ -375,7 +367,6 @@ func buildCommand(cmd model.CommandView, withDetails bool) *Node {
 	n := &Node{
 		Kind:     "command",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + parent + "/" + name,
 		Location: nameLocation(cmd),
 	}
 
@@ -414,14 +405,10 @@ func buildCommand(cmd model.CommandView, withDetails bool) *Node {
 
 func buildEvent(m *model.Model, event model.EventView, withDetails bool) *Node {
 	name, _ := event.Name().Text()
-	domain := scopeText(event.Scope(), "domain")
-	boundedContext := scopeText(event.Scope(), "boundedContext")
-	aggregate := scopeText(event.Scope(), "aggregate")
 
 	n := &Node{
 		Kind:     "event",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + aggregate + "/" + name,
 		Location: nameLocation(event),
 	}
 	if publishers := filterCommandsPublishingEvent(m, event); len(publishers) > 0 {
@@ -438,13 +425,10 @@ func buildEvent(m *model.Model, event model.EventView, withDetails bool) *Node {
 
 func buildReadModel(readModel model.ReadModelView, withDetails bool) *Node {
 	name, _ := readModel.Name().Text()
-	domain := scopeText(readModel.Scope(), "domain")
-	boundedContext := scopeText(readModel.Scope(), "boundedContext")
 
 	n := &Node{
 		Kind:     "read-model",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(readModel),
 	}
 	projections := readModel.Projections().Seq()
@@ -472,13 +456,10 @@ func buildReadModel(readModel model.ReadModelView, withDetails bool) *Node {
 
 func buildQuery(query model.QueryView, withDetails bool) *Node {
 	name, _ := query.Name().Text()
-	domain := scopeText(query.Scope(), "domain")
-	boundedContext := scopeText(query.Scope(), "boundedContext")
 
 	n := &Node{
 		Kind:     "query",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(query),
 	}
 	if rmName, ok := query.ReadModel().Text(); ok {
@@ -505,12 +486,9 @@ func buildQuery(query model.QueryView, withDetails bool) *Node {
 
 func buildEntity(entity model.EntityView, withDetails bool) *Node {
 	name, _ := entity.Name().Text()
-	domain := scopeText(entity.Scope(), "domain")
-	boundedContext := scopeText(entity.Scope(), "boundedContext")
 	n := &Node{
 		Kind:     "entity",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(entity),
 	}
 	invariantCount := len(entity.Invariants().Seq())
@@ -547,12 +525,9 @@ func buildEntity(entity model.EntityView, withDetails bool) *Node {
 
 func buildValueObject(valueObject model.ValueObjectView, withDetails bool) *Node {
 	name, _ := valueObject.Name().Text()
-	domain := scopeText(valueObject.Scope(), "domain")
-	boundedContext := scopeText(valueObject.Scope(), "boundedContext")
 	n := &Node{
 		Kind:     "value-object",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(valueObject),
 	}
 	invariantCount := len(valueObject.Invariants().Seq())
@@ -575,12 +550,9 @@ func buildValueObject(valueObject model.ValueObjectView, withDetails bool) *Node
 
 func buildDomainService(domainService model.DomainServiceView, withDetails bool) *Node {
 	name, _ := domainService.Name().Text()
-	domain := scopeText(domainService.Scope(), "domain")
-	boundedContext := scopeText(domainService.Scope(), "boundedContext")
 	n := &Node{
 		Kind:     "domain-service",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(domainService),
 	}
 	functionCount := len(domainService.Functions().Seq())
@@ -598,14 +570,11 @@ func buildDomainService(domainService model.DomainServiceView, withDetails bool)
 
 func buildActor(a model.ActorView, withDetails bool) *Node {
 	name, _ := a.Name().Text()
-	domain := scopeText(a.Scope(), "domain")
-	boundedContext := scopeText(a.Scope(), "boundedContext")
 	atype, _ := a.Type().Text()
 	n := &Node{
 		Kind:     "actor",
 		Name:     name,
 		Tags:     []string{atype},
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(a),
 	}
 	if withDetails {
@@ -620,11 +589,9 @@ func buildActor(a model.ActorView, withDetails bool) *Node {
 
 func buildProcessManager(processManager model.ProcessManagerView, withDetails bool) *Node {
 	name, _ := processManager.Name().Text()
-	domain := scopeText(processManager.Scope(), "domain")
 	n := &Node{
 		Kind:     "process-manager",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(processManager),
 	}
 	if deliveryGuarantee, ok := processManager.DeliveryGuarantee().Text(); ok {
@@ -647,11 +614,9 @@ func buildProcessManager(processManager model.ProcessManagerView, withDetails bo
 
 func buildEventHandler(eventHandler model.EventHandlerView, withDetails bool) *Node {
 	name, _ := eventHandler.Name().Text()
-	domain := scopeText(eventHandler.Scope(), "domain")
 	n := &Node{
 		Kind:     "event-handler",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(eventHandler),
 	}
 	if deliveryGuarantee, ok := eventHandler.DeliveryGuarantee().Text(); ok {
@@ -668,11 +633,9 @@ func buildEventHandler(eventHandler model.EventHandlerView, withDetails bool) *N
 
 func buildPolicy(p model.PolicyView, withDetails bool) *Node {
 	name, _ := p.Name().Text()
-	domain := scopeText(p.Scope(), "domain")
 	n := &Node{
 		Kind:     "policy",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(p),
 	}
 	if deliveryGuarantee, ok := p.DeliveryGuarantee().Text(); ok {
@@ -683,11 +646,9 @@ func buildPolicy(p model.PolicyView, withDetails bool) *Node {
 
 func buildExternalSystem(externalSystem model.ExternalSystemView, withDetails bool) *Node {
 	name, _ := externalSystem.Name().Text()
-	domain := scopeText(externalSystem.Scope(), "domain")
 	n := &Node{
 		Kind:     "external-system",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(externalSystem),
 	}
 	if d, ok := externalSystem.Direction().Text(); ok {
@@ -706,7 +667,6 @@ func buildContextMapping(contextMapping model.ContextMappingView, withDetails bo
 		Kind:     "context-mapping",
 		Name:     name,
 		Tags:     []string{cmType},
-		Key:      name,
 		Location: nameLocation(contextMapping),
 	}
 	return n
@@ -715,12 +675,10 @@ func buildContextMapping(contextMapping model.ContextMappingView, withDetails bo
 func buildFeature(feature model.FeatureView, withDetails bool) *Node {
 	name, _ := feature.Name().Text()
 	scope := feature.Scope()
-	domain := scopeText(scope, "domain")
 
 	n := &Node{
 		Kind:     "feature",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(feature),
 	}
 
@@ -778,12 +736,10 @@ func featureVariantAndTarget(scope ast.Node) (string, string) {
 
 func buildStory(story model.DomainStoryView, withDetails bool) *Node {
 	name, _ := story.Name().Text()
-	domain := scopeText(story.Scope(), "domain")
 
 	n := &Node{
 		Kind:     "domain-story",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(story),
 	}
 	if pointInTime, ok := story.PointInTime().Text(); ok {
