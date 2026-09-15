@@ -9,20 +9,22 @@ import (
 	"github.com/thenativeweb/esdm/modelpath"
 )
 
-// BuildTree returns the render tree for the given
-// resolved model, narrowed to the subtree identified by
-// p. An empty Path selects the entire model.
-func BuildTree(m *model.Model, p modelpath.Path, withDetails bool) (*Node, error) {
-	root := buildAllDomains(m, withDetails)
+// BuildTree returns the render tree for the whole model:
+// a synthetic root with one child per domain. Narrowing to
+// a path is a separate step, see Narrow, so that callers
+// can annotate the complete tree first.
+func BuildTree(m *model.Model, withDetails bool) *Node {
+	return buildAllDomains(m, withDetails)
+}
+
+// Narrow reduces a render tree to the subtree the path
+// selects. An empty path returns the tree unchanged; an
+// unknown segment returns an error.
+func Narrow(root *Node, p modelpath.Path) (*Node, error) {
 	if len(p.Segments) == 0 {
 		return root, nil
 	}
-
-	target, err := narrow(root, p.Segments)
-	if err != nil {
-		return nil, err
-	}
-	return target, nil
+	return narrow(root, p.Segments)
 }
 
 // buildAllDomains constructs the synthetic root node

@@ -548,6 +548,19 @@ func TestViewCommand(t *testing.T) {
 		assert.NotContains(t, below, "aggregate order")
 	})
 
+	t.Run("keeps diagnostics from outside a narrowed subtree off its nodes", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", outsideErrorYAML)
+
+		full, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
+		require.NoError(t, err)
+		assert.Contains(t, full, "process-manager tracker ✗")
+
+		narrowed, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/ordering"})
+		require.NoError(t, err)
+		assert.NotContains(t, narrowed, "✗", narrowed)
+	})
+
 	t.Run("returns an error for an unknown path segment", func(t *testing.T) {
 		dir := t.TempDir()
 		writeMinimalModel(t, dir)
@@ -855,4 +868,35 @@ scope:
   boundedContext: ordering
 data:
   type: object
+`
+
+// outsideErrorYAML adds a process manager whose correlation
+// field does not exist, which the resolver reports as an
+// error. The process manager sits at domain level, outside
+// the `shop/ordering` subtree.
+const outsideErrorYAML = minimalDomainYAML + `---
+apiVersion: schema.esdm.io/core/v1
+kind: process-manager
+name: tracker
+scope:
+  domain: shop
+deliveryGuarantee: at-most-once
+correlatedBy:
+  source: event-field
+  field: correlation-id
+state:
+  type: object
+startsWhen:
+  - boundedContext: ordering
+    aggregate: order
+    event: placed
+endsWhen:
+  - name: done
+    condition: state.completed is true
+reactions:
+  - when:
+      boundedContext: ordering
+      aggregate: order
+      event: placed
+    rule: mark complete
 `
