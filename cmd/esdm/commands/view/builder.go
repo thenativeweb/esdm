@@ -359,10 +359,6 @@ func buildDCB(m *model.Model, dcb model.DynamicConsistencyBoundaryView, withDeta
 
 func buildCommand(cmd model.CommandView, withDetails bool) *Node {
 	name, _ := cmd.Name().Text()
-	parent := scopeText(cmd.Scope(), "aggregate")
-	if parent == "" {
-		parent = scopeText(cmd.Scope(), "dynamicConsistencyBoundary")
-	}
 
 	n := &Node{
 		Kind:     "command",
