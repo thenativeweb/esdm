@@ -16,4 +16,4 @@ The `data` field is a JSON Schema object that describes the immutable payload. A
 
 ESDM does not model Event versioning as a first-class field. An evolved Event is a new Event type with its own name (e.g. `invoice-paid`, `invoice-paid-v2`). Migration and upcasting are implementation concerns outside this schema.
 
-`description` and `metadata` carry the usual free-form prose and non-semantic attachments. `apiVersion` is `schema.esdm.io/core/v1`, `kind` is `event`, and `name` is the Event's kebab-case identifier in the past tense.
+`description` and `metadata` carry the usual free-form prose and non-semantic attachments. `apiVersion` is `schema.esdm.io/core/v1`, `kind` is `event`, and `name` is the Event's kebab-case identifier in the past tense – the bare name, without the Aggregate's name in front of it; see **[Naming](/concepts/event.md#naming)**.
