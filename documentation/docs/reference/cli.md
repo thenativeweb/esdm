@@ -98,7 +98,7 @@ esdm view [path] [flags]
 
 ### Anatomy
 
-`esdm view` renders a hierarchical summary of an ESDM model. The optional `[path]` argument filters the rendered tree to a sub-region of the model, with the path following the model hierarchy – Domain, Bounded Context, Consistency Unit – separated by slashes. A bare `esdm view` with no path renders the full model.
+`esdm view` renders a hierarchical summary of an ESDM model. The optional `[path]` argument filters the rendered tree to a sub-region of the model, with the path following the model hierarchy – Domain, Bounded Context, Consistency Unit – separated by slashes. Each segment matches elements by name; when several elements of different kinds share a name at one position, every match is rendered. A bare `esdm view` with no path renders the full model.
 
 The directory holding the model is selected with `-d` / `--directory`, defaulting to the current working directory. The optional `--with-details` flag (default `false`) includes node-level details such as schemas, invariants, and rule prose alongside the skeleton; without it, the output is just the structural tree. The `--color` flag controls coloring with the same `auto` / `always` / `never` semantics as on `esdm lint`.
 

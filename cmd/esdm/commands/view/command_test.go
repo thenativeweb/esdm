@@ -4,12 +4,17 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/thenativeweb/esdm/cmd/esdm/commands/view"
+	"github.com/thenativeweb/esdm/schema"
 )
 
 // extendedCatalogYAML covers every catalog kind in a
@@ -121,6 +126,45 @@ consults:
     aggregate: order
     event: placed
     criteria: relevant
+---
+apiVersion: schema.esdm.io/core/v1
+kind: command
+name: reserve
+scope:
+  domain: shop
+  boundedContext: ordering
+  dynamicConsistencyBoundary: capacity
+data:
+  type: object
+publishes:
+  - reserved
+---
+apiVersion: schema.esdm.io/core/v1
+kind: event
+name: reserved
+scope:
+  domain: shop
+  boundedContext: ordering
+data:
+  type: object
+---
+apiVersion: schema.esdm.io/core/v1
+kind: entity
+name: line-item
+scope:
+  domain: shop
+  boundedContext: ordering
+schema:
+  type: object
+  properties:
+    sku:
+      type: string
+identifiedBy:
+  source: schema
+  field: sku
+invariants:
+  - name: positive-quantity
+    rule: quantity is greater than zero
 ---
 apiVersion: schema.esdm.io/core/v1
 kind: value-object
@@ -438,6 +482,13 @@ func writeMinimalModel(t *testing.T, dir string) {
 
 func runViewCommand(t *testing.T, args []string) (string, error) {
 	t.Helper()
+	// view.Command is a package-level cobra command, so a
+	// flag set by one run (for example --with-details) would
+	// otherwise stay in effect for every run after it.
+	view.Command.Flags().VisitAll(func(flag *pflag.Flag) {
+		_ = flag.Value.Set(flag.DefValue)
+		flag.Changed = false
+	})
 	var buf bytes.Buffer
 	view.Command.SetOut(&buf)
 	view.Command.SetErr(&buf)
@@ -470,6 +521,46 @@ func TestViewCommand(t *testing.T) {
 		assert.NotContains(t, out, "domain shop")
 	})
 
+	t.Run("renders every sibling that matches a path segment", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", sameNamedSiblingsYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/ordering/customer"})
+		require.NoError(t, err)
+		assert.Contains(t, out, "entity customer")
+		assert.Contains(t, out, "actor customer")
+	})
+
+	t.Run("continues the walk below every matching sibling", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", sameNamedSiblingsYAML)
+
+		both, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/ordering/order"})
+		require.NoError(t, err)
+		assert.Contains(t, both, "aggregate order")
+		assert.Contains(t, both, "dynamic-consistency-boundary order")
+
+		// `reserve` lives under the DCB, which is not the
+		// first sibling named `order`.
+		below, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/ordering/order/reserve"})
+		require.NoError(t, err)
+		assert.Contains(t, below, "command reserve")
+		assert.NotContains(t, below, "aggregate order")
+	})
+
+	t.Run("keeps diagnostics from outside a narrowed subtree off its nodes", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", outsideErrorYAML)
+
+		full, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
+		require.NoError(t, err)
+		assert.Contains(t, full, "process-manager tracker ✗")
+
+		narrowed, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/ordering"})
+		require.NoError(t, err)
+		assert.NotContains(t, narrowed, "✗", narrowed)
+	})
+
 	t.Run("returns an error for an unknown path segment", func(t *testing.T) {
 		dir := t.TempDir()
 		writeMinimalModel(t, dir)
@@ -492,32 +583,82 @@ func TestViewCommand(t *testing.T) {
 		assert.Contains(t, detailed, "identifiedBy: generated/uuid")
 	})
 
-	t.Run("renders every catalog kind in an extended model", func(t *testing.T) {
+	t.Run("renders a node for every kind in the core schema", func(t *testing.T) {
 		dir := t.TempDir()
 		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
 
 		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
 		require.NoError(t, err)
 
-		assert.Contains(t, out, "domain shop")
-		assert.Contains(t, out, "subdomain core-sub")
-		assert.Contains(t, out, "bounded-context ordering")
-		assert.Contains(t, out, "aggregate order")
-		assert.Contains(t, out, "command place")
-		assert.Contains(t, out, "event placed")
-		assert.Contains(t, out, "read-model orders")
-		assert.Contains(t, out, "query list-orders")
-		assert.Contains(t, out, "actor customer")
-		assert.Contains(t, out, "dynamic-consistency-boundary capacity")
-		assert.Contains(t, out, "value-object money")
-		assert.Contains(t, out, "domain-service pricing")
-		assert.Contains(t, out, "process-manager tracker")
-		assert.Contains(t, out, "event-handler notify")
-		assert.Contains(t, out, "policy react")
-		assert.Contains(t, out, "external-system stripe")
-		assert.Contains(t, out, "context-mapping shop-to-self")
-		assert.Contains(t, out, "domain-story place-an-order")
-		assert.Contains(t, out, "feature order-placement")
+		for _, kind := range coreSchemaKinds(t) {
+			assert.Truef(t, hasNodeOfKind(out, kind), "no node of kind %q in output:\n%s", kind, out)
+		}
+	})
+
+	t.Run("renders a node for every extension kind", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
+		require.NoError(t, err)
+
+		assert.True(t, hasNodeOfKind(out, "domain-story"), out)
+		assert.True(t, hasNodeOfKind(out, "feature"), out)
+	})
+
+	t.Run("renders free-standing events under their bounded context after the dynamic consistency boundaries", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
+		require.NoError(t, err)
+
+		dcbIndex := strings.Index(out, "dynamic-consistency-boundary capacity")
+		eventIndex := strings.Index(out, "event reserved")
+		readModelIndex := strings.Index(out, "read-model orders")
+		require.NotEqual(t, -1, eventIndex, out)
+		assert.Less(t, dcbIndex, eventIndex, out)
+		assert.Less(t, eventIndex, readModelIndex, out)
+		assert.Contains(t, out, "event reserved  ← reserve")
+	})
+
+	t.Run("renders entities under their bounded context between queries and value objects", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
+		require.NoError(t, err)
+
+		queryIndex := strings.Index(out, "query list-orders")
+		entityIndex := strings.Index(out, "entity line-item")
+		valueObjectIndex := strings.Index(out, "value-object money")
+		require.NotEqual(t, -1, entityIndex, out)
+		assert.Less(t, queryIndex, entityIndex, out)
+		assert.Less(t, entityIndex, valueObjectIndex, out)
+		assert.Contains(t, out, "entity line-item  1 inv")
+		assert.NotContains(t, out, "identifiedBy: schema.sku")
+	})
+
+	t.Run("shows entity details with --with-details", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "--with-details", "shop/ordering/line-item"})
+		require.NoError(t, err)
+
+		assert.Contains(t, out, "identifiedBy: schema.sku")
+		assert.Contains(t, out, "schema: ")
+		assert.Contains(t, out, `invariant "positive-quantity": quantity is greater than zero`)
+	})
+
+	t.Run("counts free-standing events and entities in the bounded context stats", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
+		require.NoError(t, err)
+
+		assert.Contains(t, out, "1 agg · 1 dcb · 1 evt · 1 rm · 1 qry · 1 ent · 1 vo · 1 ds · 1 act")
 	})
 
 	t.Run("annotates the domain with per-kind stats covering every direct child", func(t *testing.T) {
@@ -640,3 +781,122 @@ data:
 		assert.Contains(t, out, "⚠")
 	})
 }
+
+// coreSchemaKinds reads the `kind` enum out of the embedded
+// core schema, so the kind-coverage test follows the schema
+// instead of a hand-maintained list that can silently omit
+// a kind - which is how entities went unrendered.
+func coreSchemaKinds(t *testing.T) []string {
+	t.Helper()
+
+	var parsed struct {
+		Properties struct {
+			Kind struct {
+				Enum []string `yaml:"enum"`
+			} `yaml:"kind"`
+		} `yaml:"properties"`
+	}
+	require.NoError(t, yaml.Unmarshal(schema.Core(), &parsed))
+	require.NotEmpty(t, parsed.Properties.Kind.Enum)
+	return parsed.Properties.Kind.Enum
+}
+
+// hasNodeOfKind reports whether the rendered output has a
+// node line whose header starts with the given kind. The
+// leading character class skips the tree connectors, and
+// the trailing space keeps `event` from matching
+// `event-handler`.
+func hasNodeOfKind(out, kind string) bool {
+	pattern := regexp.MustCompile(`(?m)^[\s│├└─]*` + regexp.QuoteMeta(kind) + ` `)
+	return pattern.MatchString(out)
+}
+
+// sameNamedSiblingsYAML has two pairs of same-named siblings
+// of different kinds at one position: an entity and an
+// actor both named `customer`, and an aggregate and a DCB
+// both named `order`. The model lints clean today, because
+// uniqueness is only checked per kind (see #19).
+const sameNamedSiblingsYAML = minimalDomainYAML + `---
+apiVersion: schema.esdm.io/core/v1
+kind: entity
+name: customer
+scope:
+  domain: shop
+  boundedContext: ordering
+schema:
+  type: object
+  properties:
+    id:
+      type: string
+identifiedBy:
+  source: schema
+  field: id
+---
+apiVersion: schema.esdm.io/core/v1
+kind: dynamic-consistency-boundary
+name: order
+scope:
+  domain: shop
+  boundedContext: ordering
+identifiedBy:
+  - name: id
+    source: static
+    value: solo
+consults:
+  - boundedContext: ordering
+    aggregate: order
+    event: placed
+    criteria: relevant
+---
+apiVersion: schema.esdm.io/core/v1
+kind: command
+name: reserve
+scope:
+  domain: shop
+  boundedContext: ordering
+  dynamicConsistencyBoundary: order
+data:
+  type: object
+publishes:
+  - reserved
+---
+apiVersion: schema.esdm.io/core/v1
+kind: event
+name: reserved
+scope:
+  domain: shop
+  boundedContext: ordering
+data:
+  type: object
+`
+
+// outsideErrorYAML adds a process manager whose correlation
+// field does not exist, which the resolver reports as an
+// error. The process manager sits at domain level, outside
+// the `shop/ordering` subtree.
+const outsideErrorYAML = minimalDomainYAML + `---
+apiVersion: schema.esdm.io/core/v1
+kind: process-manager
+name: tracker
+scope:
+  domain: shop
+deliveryGuarantee: at-most-once
+correlatedBy:
+  source: event-field
+  field: correlation-id
+state:
+  type: object
+startsWhen:
+  - boundedContext: ordering
+    aggregate: order
+    event: placed
+endsWhen:
+  - name: done
+    condition: state.completed is true
+reactions:
+  - when:
+      boundedContext: ordering
+      aggregate: order
+      event: placed
+    rule: mark complete
+`
