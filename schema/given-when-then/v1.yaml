@@ -27,7 +27,7 @@
 # Hybrid structure: a feature is a container, scenarios are its
 # elements. The hybrid mirrors `domain-story`'s container-of-
 # `sentences` shape and avoids both extremes – one document per
-# scenario (no fachliche Klammer, scope repeated everywhere) and a
+# scenario (no shared frame, scope repeated everywhere) and a
 # bare list of scenarios (no narrative framing).
 #
 # For the extension mechanism (URL layout, dispatch on `apiVersion`,
@@ -78,13 +78,13 @@ $schema: "https://json-schema.org/draft/2020-12/schema"
 # Per-schema SemVer revision; see the core schema for the rationale.
 # Extension revisions move independently of the core revision, mirroring
 # how extension `$id`s move independently of `core/v1`.
-x-esdm-schema-revision: "1.0.0"
+x-esdm-schema-revision: "1.0.1"
 x-esdm-file-suffix: ".esdm.yaml"
 x-esdm-document-separator: "---"
 x-esdm-project-layout:
   schemas-directory: "schemas"
   schema-path-template: "schemas/{name}/{version}.yaml"
-description: "Extension schema for Given-When-Then specifications. A `feature` document groups scenarios about one consistency unit (`aggregate`, `dynamic-consistency-boundary`, `process-manager`, or `read-model`) under a single fachliche Klammer. Each scenario carries `given` (preceding events), `when` (a triggering command, event, timer, or query), and `then` (the expected outcome). The four feature variants are distinguished by the discriminator field inside `scope` (`aggregate`, `dynamicConsistencyBoundary`, `processManager`, `readModel`) – the chosen variant fixes the form of `given`, `when`, and `then` on every scenario. Aggregate features identify events by bare name (the feature's scope fixes the producing aggregate); DCB, process-manager and read-model features carry full event references because their preceding events may originate in other bounded contexts. Cross-field references (commands, events, queries, timers, actors, named invariants) are modeling rules the schema does not enforce; the linter checks them separately."
+description: "Extension schema for Given-When-Then specifications. A `feature` document groups scenarios about one consistency unit (`aggregate`, `dynamic-consistency-boundary`, `process-manager`, or `read-model`) under one shared frame. Each scenario carries `given` (preceding events), `when` (a triggering command, event, timer, or query), and `then` (the expected outcome). The four feature variants are distinguished by the discriminator field inside `scope` (`aggregate`, `dynamicConsistencyBoundary`, `processManager`, `readModel`) – the chosen variant fixes the form of `given`, `when`, and `then` on every scenario. Aggregate features identify events by bare name (the feature's scope fixes the producing aggregate); DCB, process-manager and read-model features carry full event references because their preceding events may originate in other bounded contexts. Cross-field references (commands, events, queries, timers, actors, named invariants) are modeling rules the schema does not enforce; the linter checks them separately."
 
 $defs:
   name:
