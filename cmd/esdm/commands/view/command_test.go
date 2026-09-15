@@ -294,6 +294,55 @@ scenarios:
       events:
         - event: placed
           data: {}
+---
+apiVersion: schema.esdm.io/given-when-then/v1
+kind: feature
+name: capacity-check
+scope:
+  domain: shop
+  boundedContext: ordering
+  dynamicConsistencyBoundary: capacity
+scenarios:
+  - name: reserves-capacity
+    when:
+      command: reserve
+      data: {}
+    then:
+      events:
+        - event: reserved
+          data: {}
+---
+apiVersion: schema.esdm.io/given-when-then/v1
+kind: feature
+name: tracking
+scope:
+  domain: shop
+  processManager: tracker
+scenarios:
+  - name: completes-on-placement
+    when:
+      boundedContext: ordering
+      aggregate: order
+      event: placed
+      data: {}
+    then:
+      state:
+        completed: true
+---
+apiVersion: schema.esdm.io/given-when-then/v1
+kind: feature
+name: listing
+scope:
+  domain: shop
+  boundedContext: ordering
+  readModel: orders
+scenarios:
+  - name: lists-orders
+    when:
+      query: list-orders
+      parameters: {}
+    then:
+      result: {}
 `
 
 // minimalDomainYAML is a single-document model with a
@@ -661,6 +710,53 @@ func TestViewCommand(t *testing.T) {
 		assert.Contains(t, out, "1 agg · 1 dcb · 1 evt · 1 rm · 1 qry · 1 ent · 1 vo · 1 ds · 1 act")
 	})
 
+	t.Run("renders each feature under the consistency unit its scope names", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
+
+		cases := []struct {
+			path    string
+			feature string
+			stats   string
+		}{
+			{"shop/ordering/order", "feature order-placement", "aggregate order  1 cmd · 1 evt · 1 feat"},
+			{"shop/ordering/capacity", "feature capacity-check", "dynamic-consistency-boundary capacity  1 cmd · 1 consult · 1 feat"},
+			{"shop/tracker", "feature tracking", "process-manager tracker"},
+			{"shop/ordering/orders", "feature listing", "read-model orders  ← 1 evt · 1 feat"},
+		}
+		for _, c := range cases {
+			t.Run(c.path, func(t *testing.T) {
+				out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", c.path})
+				require.NoError(t, err)
+				assert.Contains(t, out, c.feature)
+				assert.Contains(t, out, c.stats)
+			})
+		}
+	})
+
+	t.Run("counts a process manager's features in its stats", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never", "shop/tracker"})
+		require.NoError(t, err)
+		assert.Regexp(t, `process-manager tracker[^\n]*at-most-once · 1 feat`, out)
+	})
+
+	t.Run("does not render features directly under the domain", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
+		require.NoError(t, err)
+		// A feature at domain level would be a direct child
+		// of the root line and thus start with a single
+		// connector; features under a unit are indented
+		// further.
+		assert.NotRegexp(t, `(?m)^[├└]─ feature `, out)
+		assert.Equal(t, 4, strings.Count(out, "feature "), out)
+	})
+
 	t.Run("annotates the domain with per-kind stats covering every direct child", func(t *testing.T) {
 		dir := t.TempDir()
 		writeFile(t, dir, "model.esdm.yaml", extendedCatalogYAML)
@@ -670,7 +766,7 @@ func TestViewCommand(t *testing.T) {
 		// The domain may carry an annotator marker (an
 		// error or warning glyph) between name and stats,
 		// so assert on the stats fragment alone.
-		assert.Contains(t, out, "1 sub · 1 bc · 1 pm · 1 eh · 1 pol · 1 es · 1 cm · 1 story · 1 feat")
+		assert.Contains(t, out, "1 sub · 1 bc · 1 pm · 1 eh · 1 pol · 1 es · 1 cm · 1 story\n")
 	})
 
 	t.Run("omits zero counts from the domain stats line", func(t *testing.T) {

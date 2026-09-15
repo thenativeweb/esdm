@@ -57,7 +57,6 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 	externalSystemCount := 0
 	contextMappingCount := 0
 	storyCount := 0
-	featureCount := 0
 
 	for _, sub := range filterSubdomainsByDomain(m, name) {
 		n.Children = append(n.Children, buildSubdomain(sub, withDetails))
@@ -68,7 +67,7 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 		boundedContextCount++
 	}
 	for _, processManager := range filterProcessManagersByDomain(m, name) {
-		n.Children = append(n.Children, buildProcessManager(processManager, withDetails))
+		n.Children = append(n.Children, buildProcessManager(m, processManager, withDetails))
 		processManagerCount++
 	}
 	for _, eventHandler := range filterEventHandlersByDomain(m, name) {
@@ -94,10 +93,6 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 		n.Children = append(n.Children, buildStory(story, withDetails))
 		storyCount++
 	}
-	for _, feature := range filterFeaturesByDomain(m, name) {
-		n.Children = append(n.Children, buildFeature(feature, withDetails))
-		featureCount++
-	}
 
 	stats := plural(subdomainCount, "sub")
 	if s := plural(boundedContextCount, "bc"); s != "" {
@@ -119,9 +114,6 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 		stats = appendStat(stats, s)
 	}
 	if s := plural(storyCount, "story"); s != "" {
-		stats = appendStat(stats, s)
-	}
-	if s := plural(featureCount, "feat"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if stats != "" {
@@ -195,7 +187,7 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 		freeStandingEventCount++
 	}
 	for _, readModel := range filterReadModelsByBoundedContext(m, domain, name) {
-		n.Children = append(n.Children, buildReadModel(readModel, withDetails))
+		n.Children = append(n.Children, buildReadModel(m, readModel, withDetails))
 		readModelCount++
 	}
 	for _, query := range filterQueriesByBoundedContext(m, domain, name) {
@@ -288,6 +280,11 @@ func buildAggregate(m *model.Model, aggregate model.AggregateView, withDetails b
 		n.Children = append(n.Children, buildEvent(m, event, withDetails))
 		evtCount++
 	}
+	featCount := 0
+	for _, feature := range filterFeaturesByUnit(m, "aggregate", domain, boundedContext, name) {
+		n.Children = append(n.Children, buildFeature(feature, withDetails))
+		featCount++
+	}
 	invCount := len(aggregate.Invariants().Seq())
 
 	stats := plural(cmdCount, "cmd")
@@ -295,6 +292,9 @@ func buildAggregate(m *model.Model, aggregate model.AggregateView, withDetails b
 		stats = appendStat(stats, s)
 	}
 	if s := plural(invCount, "inv"); s != "" {
+		stats = appendStat(stats, s)
+	}
+	if s := plural(featCount, "feat"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if stats != "" {
@@ -341,9 +341,17 @@ func buildDCB(m *model.Model, dcb model.DynamicConsistencyBoundaryView, withDeta
 		n.Children = append(n.Children, buildCommand(cmd, withDetails))
 		cmdCount++
 	}
+	featCount := 0
+	for _, feature := range filterFeaturesByUnit(m, "dynamicConsistencyBoundary", domain, boundedContext, name) {
+		n.Children = append(n.Children, buildFeature(feature, withDetails))
+		featCount++
+	}
 	consults := len(dcb.Consults().Seq())
 	stats := plural(cmdCount, "cmd")
 	if s := plural(consults, "consult"); s != "" {
+		stats = appendStat(stats, s)
+	}
+	if s := plural(featCount, "feat"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if stats != "" {
@@ -421,8 +429,10 @@ func buildEvent(m *model.Model, event model.EventView, withDetails bool) *Node {
 	return n
 }
 
-func buildReadModel(readModel model.ReadModelView, withDetails bool) *Node {
+func buildReadModel(m *model.Model, readModel model.ReadModelView, withDetails bool) *Node {
 	name, _ := readModel.Name().Text()
+	domain := scopeText(readModel.Scope(), "domain")
+	boundedContext := scopeText(readModel.Scope(), "boundedContext")
 
 	n := &Node{
 		Kind:     "read-model",
@@ -432,6 +442,14 @@ func buildReadModel(readModel model.ReadModelView, withDetails bool) *Node {
 	projections := readModel.Projections().Seq()
 	if len(projections) > 0 {
 		n.Stats = []string{fmt.Sprintf("← %s", plural(len(projections), "evt"))}
+	}
+	featCount := 0
+	for _, feature := range filterFeaturesByUnit(m, "readModel", domain, boundedContext, name) {
+		n.Children = append(n.Children, buildFeature(feature, withDetails))
+		featCount++
+	}
+	if s := plural(featCount, "feat"); s != "" {
+		n.Stats = append(n.Stats, s)
 	}
 	if withDetails {
 		for _, proj := range projections {
@@ -585,8 +603,9 @@ func buildActor(a model.ActorView, withDetails bool) *Node {
 	return n
 }
 
-func buildProcessManager(processManager model.ProcessManagerView, withDetails bool) *Node {
+func buildProcessManager(m *model.Model, processManager model.ProcessManagerView, withDetails bool) *Node {
 	name, _ := processManager.Name().Text()
+	domain := scopeText(processManager.Scope(), "domain")
 	n := &Node{
 		Kind:     "process-manager",
 		Name:     name,
@@ -594,6 +613,14 @@ func buildProcessManager(processManager model.ProcessManagerView, withDetails bo
 	}
 	if deliveryGuarantee, ok := processManager.DeliveryGuarantee().Text(); ok {
 		n.Stats = append(n.Stats, deliveryGuarantee)
+	}
+	featCount := 0
+	for _, feature := range filterFeaturesByUnit(m, "processManager", domain, "", name) {
+		n.Children = append(n.Children, buildFeature(feature, withDetails))
+		featCount++
+	}
+	if s := plural(featCount, "feat"); s != "" {
+		n.Stats = append(n.Stats, s)
 	}
 	if withDetails {
 		for _, r := range processManager.Reactions().Seq() {
@@ -1168,12 +1195,25 @@ func filterStoriesByDomain(m *model.Model, domain string) []model.DomainStoryVie
 	return out
 }
 
-func filterFeaturesByDomain(m *model.Model, domain string) []model.FeatureView {
+// filterFeaturesByUnit returns the features whose scope
+// names the given consistency unit through unitField -
+// aggregate, dynamicConsistencyBoundary, processManager, or
+// readModel. A feature is about exactly one unit, so the
+// unit is its position in the tree; process managers are
+// domain-scoped, so their features carry no bounded context.
+func filterFeaturesByUnit(m *model.Model, unitField, domain, boundedContext, unit string) []model.FeatureView {
 	var out []model.FeatureView
 	for _, v := range m.Extensions.GivenWhenThen.Features {
-		if scopeText(v.Scope(), "domain") == domain {
-			out = append(out, v)
+		if scopeText(v.Scope(), "domain") != domain {
+			continue
 		}
+		if scopeText(v.Scope(), "boundedContext") != boundedContext {
+			continue
+		}
+		if scopeText(v.Scope(), unitField) != unit {
+			continue
+		}
+		out = append(out, v)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		ni, _ := out[i].Name().Text()

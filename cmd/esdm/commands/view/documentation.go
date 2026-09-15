@@ -6,7 +6,9 @@
 // domain services and actors -> commands / events, plus
 // the integration layer (process managers, event
 // handlers, policies, external systems, context mappings)
-// and the extension documents (domain stories, features).
+// and the extension documents: domain stories under their
+// domain, features under the consistency unit they are
+// about.
 //
 // Placement follows one rule: an element sits at the
 // position its own `scope` names, and relationships
@@ -14,7 +16,10 @@
 // An event is rendered under the aggregate its scope
 // names, or directly under the bounded context when its
 // scope names no aggregate; the command that publishes it
-// is an annotation, not its parent. The one exception is
+// is an annotation, not its parent. A feature is rendered
+// under the aggregate, DCB, process manager, or read model
+// its scope names, not under the domain its scope starts
+// with. The one exception is
 // `context-mapping`, which has no scope by design because
 // its endpoints may straddle domains; it is rendered under
 // every domain it touches. The rule keeps every document
