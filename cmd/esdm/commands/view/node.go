@@ -19,7 +19,6 @@ type Node struct {
 	Lines    []string
 	Children []*Node
 	Severity Severity
-	Key      string
 
 	// Location is the source location of the node's
 	// `name` field. The annotator matches diagnostic

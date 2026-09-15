@@ -124,7 +124,7 @@ func selectBoundedContexts(m *model.Model, segments []string) ([]model.BoundedCo
 
 	domain := segments[0]
 	if !domainExists(m, domain) {
-		return nil, fmt.Errorf("no entity %q under model root", domain)
+		return nil, fmt.Errorf("no element %q under model root", domain)
 	}
 
 	inDomain := sortedBoundedContexts(boundedContextsInDomain(m, domain))
@@ -142,11 +142,11 @@ func selectBoundedContexts(m *model.Model, segments []string) ([]model.BoundedCo
 		}
 	}
 	if match == nil {
-		return nil, fmt.Errorf("no entity %q under %q", boundedContextName, domain)
+		return nil, fmt.Errorf("no element %q under %q", boundedContextName, domain)
 	}
 
 	if len(segments) > 2 {
-		return nil, fmt.Errorf("no entity %q under %q", segments[2], strings.Join(segments[:2], "/"))
+		return nil, fmt.Errorf("no element %q under %q", segments[2], strings.Join(segments[:2], "/"))
 	}
 	return []model.BoundedContextView{*match}, nil
 }
