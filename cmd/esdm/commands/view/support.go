@@ -123,9 +123,9 @@ func narrow(root *Node, segments []string) (*Node, error) {
 		if len(matches) == 0 {
 			matched := strings.Join(segments[:i], "/")
 			if matched == "" {
-				return nil, fmt.Errorf("no entity %q under model root", seg)
+				return nil, fmt.Errorf("no element %q under model root", seg)
 			}
-			return nil, fmt.Errorf("no entity %q under %q", seg, matched)
+			return nil, fmt.Errorf("no element %q under %q", seg, matched)
 		}
 		frontier = matches
 	}
