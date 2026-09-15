@@ -74,7 +74,7 @@ x-esdm-project-layout:
     # project root. Tools that materialize ESDM models (Claude Code,
     # generators, scaffolders) should default to this layout instead
     # of inventing their own – grouping by document kind
-    # (`commands/`, `events/`, ...) loses the fachliche cohesion
+    # (`commands/`, `events/`, ...) loses the domain cohesion
     # that ESDM's whole consistency-unit story is built on.
     primary-axis: bounded-context
     # Where BC-spanning artifacts live. Policies, process-managers
@@ -94,8 +94,8 @@ x-esdm-project-layout:
 
       Within a bounded context, group documents by consistency unit
       (aggregate or dynamic-consistency-boundary). Commands, events
-      and invariants of one unit belong together – fachlich, beim
-      Lesen, beim Reviewen. The concrete file granularity is up to
+      and invariants of one unit belong together – in the domain, when
+      reading, when reviewing. The concrete file granularity is up to
       the modeler: one file per consistency unit, several files
       split by document kind (`aggregate`, `commands`, `events`),
       or a directory per unit – whatever scales with the BC's size.
