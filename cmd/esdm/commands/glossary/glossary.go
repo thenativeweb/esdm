@@ -54,7 +54,7 @@ func Build(m *model.Model, p modelpath.Path) (*Glossary, error) {
 
 	g := &Glossary{}
 	for _, boundedContext := range boundedContexts {
-		terms := collectTerms(boundedContext.UbiquitousLanguage())
+		terms := CollectTerms(boundedContext.UbiquitousLanguage())
 		if len(terms) == 0 {
 			continue
 		}
@@ -67,11 +67,13 @@ func Build(m *model.Model, p modelpath.Path) (*Glossary, error) {
 	return g, nil
 }
 
-// collectTerms turns the ubiquitousLanguage sequence node
+// CollectTerms turns the ubiquitousLanguage sequence node
 // into the sorted, typed term list. Entries missing a term
 // or definition are skipped defensively, even though the
-// schema requires both.
-func collectTerms(ubiquitousLanguage ast.Node) []Term {
+// schema requires both. It is exported so other commands (the
+// documentation tree) can render the same terms without
+// duplicating the extraction.
+func CollectTerms(ubiquitousLanguage ast.Node) []Term {
 	var terms []Term
 	for _, entry := range ubiquitousLanguage.Seq() {
 		term := strings.TrimSpace(textOf(entry, "term"))
