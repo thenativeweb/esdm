@@ -78,7 +78,7 @@ $schema: "https://json-schema.org/draft/2020-12/schema"
 # Per-schema SemVer revision; see the core schema for the rationale.
 # Extension revisions move independently of the core revision, mirroring
 # how extension `$id`s move independently of `core/v1`.
-x-esdm-schema-revision: "1.0.1"
+x-esdm-schema-revision: "1.0.0"
 x-esdm-file-suffix: ".esdm.yaml"
 x-esdm-document-separator: "---"
 x-esdm-project-layout:

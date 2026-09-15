@@ -97,7 +97,7 @@ func TestRevision(t *testing.T) {
 		rev, err := schema.Revision(schema.Core())
 		require.NoError(t, err)
 
-		assert.Equal(t, "1.0.1", rev)
+		assert.Equal(t, "1.0.0", rev)
 	})
 
 	t.Run("returns an error when the field is missing", func(t *testing.T) {

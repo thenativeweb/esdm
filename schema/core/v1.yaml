@@ -62,7 +62,7 @@ $schema: "https://json-schema.org/draft/2020-12/schema"
 # `update-schema` can refresh a project's local copy without a major
 # bump. Local copies that drift from the embedded revision are
 # rejected by the linter (see `esdm update-schema`).
-x-esdm-schema-revision: "1.0.1"
+x-esdm-schema-revision: "1.0.0"
 x-esdm-file-suffix: ".esdm.yaml"
 x-esdm-document-separator: "---"
 x-esdm-project-layout:
