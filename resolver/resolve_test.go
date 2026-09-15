@@ -51,6 +51,28 @@ data:
   type: object
 `
 
+// featureTemplate is a feature named `happy-path` about the
+// aggregate whose name is substituted in. Two of them with
+// different aggregates sit at different positions and must
+// coexist.
+const featureTemplate = `apiVersion: schema.esdm.io/given-when-then/v1
+kind: feature
+name: happy-path
+scope:
+  domain: commerce
+  boundedContext: ordering
+  aggregate: %s
+scenarios:
+  - name: succeeds
+    when:
+      command: place
+      data: {}
+    then:
+      events:
+        - event: placed
+          data: {}
+`
+
 const aggregateTemplate = `apiVersion: schema.esdm.io/core/v1
 kind: aggregate
 name: %s
@@ -822,7 +844,28 @@ scenarios:
 `)
 		m, _ := resolver.Resolve(parseAll(t, parents, featurePath))
 
-		assert.Contains(t, m.Extensions.GivenWhenThen.Features, "commerce/order-cancellation")
+		require.Len(t, m.Extensions.GivenWhenThen.Features, 1)
+		for _, feature := range m.Extensions.GivenWhenThen.Features {
+			name, _ := feature.Name().Text()
+			assert.Equal(t, "order-cancellation", name)
+		}
+	})
+
+	t.Run("indexes two same-named features that target different consistency units", func(t *testing.T) {
+		dir := t.TempDir()
+		parents := writeParents(t, dir)
+		invoice := writeAggregate(t, dir, "invoice.esdm.yaml", "invoice")
+		orderFeature := filepath.Join(dir, "order-happy-path.esdm.yaml")
+		writeFile(t, orderFeature, fmt.Sprintf(featureTemplate, "order"))
+		invoiceFeature := filepath.Join(dir, "invoice-happy-path.esdm.yaml")
+		writeFile(t, invoiceFeature, fmt.Sprintf(featureTemplate, "invoice"))
+
+		m, diagnostics := resolver.Resolve(parseAll(t, parents, invoice, orderFeature, invoiceFeature))
+
+		for _, d := range diagnostics {
+			assert.NotEqual(t, "esdm/structure/duplicate-name", d.RuleID, "unexpected duplicate-name: %+v", d)
+		}
+		assert.Len(t, m.Extensions.GivenWhenThen.Features, 2)
 	})
 
 	t.Run("does not conflate an extension kind with a core kind of the same name", func(t *testing.T) {

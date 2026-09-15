@@ -128,6 +128,52 @@ func ContextMappingKey(name string) string {
 	return name
 }
 
+// FeatureKey is the key for a given-when-then feature. A
+// feature is about exactly one consistency unit, and its
+// scope names that unit through a variant-specific field.
+// Two features may share a name as long as they are about
+// different units, so the unit is part of the key. Like
+// CommandKey, the key carries the unit's bare name without
+// its kind: two units of different kinds sharing a name at
+// one position is the collision #19 is about, not one the
+// key tries to paper over. Features about a process manager
+// carry an empty bounded-context segment, the same way
+// free-standing events carry an empty aggregate segment.
+func FeatureKey(domain, boundedContext, unit, name string) string {
+	return domain + "/" + boundedContext + "/" + unit + "/" + name
+}
+
+// FeatureUnit returns the bare name of the consistency unit
+// a feature's scope targets, whichever variant field
+// carries it, or "" when none does.
+func FeatureUnit(scope ast.Node) string {
+	for _, field := range []string{"aggregate", "dynamicConsistencyBoundary", "processManager", "readModel"} {
+		unit := ScopeText(scope, field)
+		if unit != "" {
+			return unit
+		}
+	}
+	return ""
+}
+
+// KeyForGivenWhenThenDocument builds the composite key for
+// a given-when-then document by kind. Returns ("", false)
+// when the document has no readable name or the kind is not
+// one this extension defines.
+func KeyForGivenWhenThenDocument(view DocumentViewBase, kind string) (string, bool) {
+	name, ok := view.Name().Text()
+	if !ok {
+		return "", false
+	}
+	scope := view.Field("scope")
+
+	switch kind {
+	case "feature":
+		return FeatureKey(ScopeText(scope, "domain"), ScopeText(scope, "boundedContext"), FeatureUnit(scope), name), true
+	}
+	return "", false
+}
+
 // KeyForCoreDocument returns the composite key for any
 // core-schema document, dispatching on kind. Returns
 // ("", false) when the document has no readable name.
