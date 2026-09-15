@@ -119,18 +119,18 @@ func compositeKey(apiVersion string, document model.DocumentViewBase, kind strin
 	switch apiVersion {
 	case coreAPIVersion:
 		return model.KeyForCoreDocument(document, kind)
-	case domainStorytellingAPIVersion, givenWhenThenAPIVersion:
-		// Both extensions key their documents by
-		// domain/name: every scope variant carries `domain`
-		// as its first field, so a domain-scoped composite
-		// key identifies the document regardless of which
-		// consistency unit it targets.
+	case domainStorytellingAPIVersion:
+		// A domain story is genuinely domain-scoped: its
+		// scope carries nothing below `domain`, so
+		// domain/name is its full position.
 		name, ok := document.Name().Text()
 		if !ok {
 			return "", false
 		}
 		domain := model.ScopeText(document.Field("scope"), "domain")
 		return domain + "/" + name, true
+	case givenWhenThenAPIVersion:
+		return model.KeyForGivenWhenThenDocument(document, kind)
 	}
 	return "", false
 }
