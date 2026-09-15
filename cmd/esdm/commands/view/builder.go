@@ -172,8 +172,10 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 
 	aggregateCount := 0
 	dynamicConsistencyBoundaryCount := 0
+	freeStandingEventCount := 0
 	readModelCount := 0
 	queryCount := 0
+	entityCount := 0
 	valueObjectCount := 0
 	domainServiceCount := 0
 	actorCount := 0
@@ -186,6 +188,14 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 		n.Children = append(n.Children, buildDCB(m, dcb, withDetails))
 		dynamicConsistencyBoundaryCount++
 	}
+	// Free-standing events sit directly after the DCBs:
+	// their scope names the bounded context and nothing
+	// below it, so the bounded context is their position,
+	// next to the DCB-bound commands that publish them.
+	for _, event := range filterFreeStandingEventsByBoundedContext(m, domain, name) {
+		n.Children = append(n.Children, buildEvent(m, event, withDetails))
+		freeStandingEventCount++
+	}
 	for _, readModel := range filterReadModelsByBoundedContext(m, domain, name) {
 		n.Children = append(n.Children, buildReadModel(readModel, withDetails))
 		readModelCount++
@@ -193,6 +203,10 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 	for _, query := range filterQueriesByBoundedContext(m, domain, name) {
 		n.Children = append(n.Children, buildQuery(query, withDetails))
 		queryCount++
+	}
+	for _, entity := range filterEntitiesByBoundedContext(m, domain, name) {
+		n.Children = append(n.Children, buildEntity(entity, withDetails))
+		entityCount++
 	}
 	for _, valueObject := range filterValueObjectsByBoundedContext(m, domain, name) {
 		n.Children = append(n.Children, buildValueObject(valueObject, withDetails))
@@ -211,10 +225,16 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 	if s := plural(dynamicConsistencyBoundaryCount, "dcb"); s != "" {
 		stats = appendStat(stats, s)
 	}
+	if s := plural(freeStandingEventCount, "evt"); s != "" {
+		stats = appendStat(stats, s)
+	}
 	if s := plural(readModelCount, "rm"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if s := plural(queryCount, "qry"); s != "" {
+		stats = appendStat(stats, s)
+	}
+	if s := plural(entityCount, "ent"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if s := plural(valueObjectCount, "vo"); s != "" {
@@ -478,6 +498,48 @@ func buildQuery(query model.QueryView, withDetails bool) *Node {
 			cName, _ := c.Field("name").Text()
 			rule, _ := c.Field("rule").Text()
 			n.Lines = append(n.Lines, fmt.Sprintf("constraint %q: %s", cName, rule))
+		}
+	}
+	return n
+}
+
+func buildEntity(entity model.EntityView, withDetails bool) *Node {
+	name, _ := entity.Name().Text()
+	domain := scopeText(entity.Scope(), "domain")
+	boundedContext := scopeText(entity.Scope(), "boundedContext")
+	n := &Node{
+		Kind:     "entity",
+		Name:     name,
+		Key:      domain + "/" + boundedContext + "/" + name,
+		Location: nameLocation(entity),
+	}
+	invariantCount := len(entity.Invariants().Seq())
+	if s := plural(invariantCount, "inv"); s != "" {
+		n.Stats = []string{s}
+	}
+	if withDetails {
+		// An entity's identity comes either from a field of
+		// its own schema or from a static value; there is no
+		// generated variant, unlike aggregates.
+		ib := entity.IdentifiedBy()
+		if src, ok := ib.Field("source").Text(); ok {
+			switch src {
+			case "schema":
+				field, _ := ib.Field("field").Text()
+				n.Lines = append(n.Lines, fmt.Sprintf("identifiedBy: schema.%s", field))
+			case "static":
+				value, _ := ib.Field("value").Text()
+				n.Lines = append(n.Lines, fmt.Sprintf("identifiedBy: static %q", value))
+			}
+		}
+		schema := schemaSummary(entity.Schema())
+		if schema != "" {
+			n.Lines = append(n.Lines, "schema: "+schema)
+		}
+		for _, inv := range entity.Invariants().Seq() {
+			invName, _ := inv.Field("name").Text()
+			rule, _ := inv.Field("rule").Text()
+			n.Lines = append(n.Lines, fmt.Sprintf("invariant %q: %s", invName, rule))
 		}
 	}
 	return n
@@ -835,6 +897,51 @@ func filterQueriesByBoundedContext(m *model.Model, domain, boundedContext string
 		if scopeText(v.Scope(), "domain") == domain && scopeText(v.Scope(), "boundedContext") == boundedContext {
 			out = append(out, v)
 		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ni, _ := out[i].Name().Text()
+		nj, _ := out[j].Name().Text()
+		return ni < nj
+	})
+	return out
+}
+
+func filterEntitiesByBoundedContext(m *model.Model, domain, boundedContext string) []model.EntityView {
+	var out []model.EntityView
+	for _, v := range m.Entities {
+		if scopeText(v.Scope(), "domain") != domain {
+			continue
+		}
+		if scopeText(v.Scope(), "boundedContext") != boundedContext {
+			continue
+		}
+		out = append(out, v)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ni, _ := out[i].Name().Text()
+		nj, _ := out[j].Name().Text()
+		return ni < nj
+	})
+	return out
+}
+
+// filterFreeStandingEventsByBoundedContext returns the
+// events whose scope names no aggregate: they belong to
+// the bounded context itself and are published by
+// DCB-bound commands.
+func filterFreeStandingEventsByBoundedContext(m *model.Model, domain, boundedContext string) []model.EventView {
+	var out []model.EventView
+	for _, v := range m.Events {
+		if scopeText(v.Scope(), "domain") != domain {
+			continue
+		}
+		if scopeText(v.Scope(), "boundedContext") != boundedContext {
+			continue
+		}
+		if scopeText(v.Scope(), "aggregate") != "" {
+			continue
+		}
+		out = append(out, v)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		ni, _ := out[i].Name().Text()
