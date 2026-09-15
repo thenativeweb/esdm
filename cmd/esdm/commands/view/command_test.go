@@ -610,6 +610,16 @@ func TestViewCommand(t *testing.T) {
 		assert.NotContains(t, narrowed, "✗", narrowed)
 	})
 
+	t.Run("annotates an aggregate-owned event with the DCB-bound command that publishes it", func(t *testing.T) {
+		dir := t.TempDir()
+		writeFile(t, dir, "model.esdm.yaml", dcbPublishesAggregateEventYAML)
+
+		out, err := runViewCommand(t, []string{"--directory", dir, "--color", "never"})
+		require.NoError(t, err)
+		assert.Contains(t, out, "command reserve  → reserved, checked")
+		assert.Contains(t, out, "event checked  ← reserve")
+	})
+
 	t.Run("returns an error for an unknown path segment", func(t *testing.T) {
 		dir := t.TempDir()
 		writeMinimalModel(t, dir)
@@ -998,4 +1008,80 @@ reactions:
       aggregate: order
       event: placed
     rule: mark complete
+`
+
+// dcbPublishesAggregateEventYAML has a DCB-bound command that
+// publishes both a free-standing event and an event owned by
+// an aggregate of the same bounded context, which the
+// resolver allows. No aggregate-bound command publishes
+// `checked`, so the DCB-bound one is its only publisher.
+const dcbPublishesAggregateEventYAML = `apiVersion: schema.esdm.io/core/v1
+kind: domain
+name: shop
+---
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: ordering
+scope:
+  domain: shop
+---
+apiVersion: schema.esdm.io/core/v1
+kind: aggregate
+name: order
+scope:
+  domain: shop
+  boundedContext: ordering
+identifiedBy:
+  source: generated
+  generator: uuid
+state:
+  type: object
+---
+apiVersion: schema.esdm.io/core/v1
+kind: event
+name: checked
+scope:
+  domain: shop
+  boundedContext: ordering
+  aggregate: order
+data:
+  type: object
+---
+apiVersion: schema.esdm.io/core/v1
+kind: dynamic-consistency-boundary
+name: capacity
+scope:
+  domain: shop
+  boundedContext: ordering
+identifiedBy:
+  - name: id
+    source: static
+    value: solo
+consults:
+  - boundedContext: ordering
+    aggregate: order
+    event: checked
+    criteria: relevant
+---
+apiVersion: schema.esdm.io/core/v1
+kind: command
+name: reserve
+scope:
+  domain: shop
+  boundedContext: ordering
+  dynamicConsistencyBoundary: capacity
+data:
+  type: object
+publishes:
+  - reserved
+  - checked
+---
+apiVersion: schema.esdm.io/core/v1
+kind: event
+name: reserved
+scope:
+  domain: shop
+  boundedContext: ordering
+data:
+  type: object
 `

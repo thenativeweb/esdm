@@ -991,48 +991,18 @@ func filterCommandsByDCB(m *model.Model, domain, boundedContext, dcb string) []m
 	return out
 }
 
-// filterCommandsPublishingEvent returns the names of
-// every command that publishes ev. Because command.publishes
-// carries bare event names, the publisher must sit in the
-// same scope as the event - the same aggregate for
-// aggregate-owned events, the same DCB for free-standing
-// events. The result is sorted alphabetically so the
-// renderer's output is deterministic.
+// filterCommandsPublishingEvent returns the names of every
+// command that publishes event, as the model defines the
+// relation. Sorted, so the renderer's output is
+// deterministic.
 func filterCommandsPublishingEvent(m *model.Model, event model.EventView) []string {
-	evName, _ := event.Name().Text()
-	evDomain := scopeText(event.Scope(), "domain")
-	evBC := scopeText(event.Scope(), "boundedContext")
-	evAgg := scopeText(event.Scope(), "aggregate")
-
 	var out []string
-	for _, cmd := range m.Commands {
-		if scopeText(cmd.Scope(), "domain") != evDomain {
-			continue
-		}
-		if scopeText(cmd.Scope(), "boundedContext") != evBC {
-			continue
-		}
-		if evAgg != "" {
-			if scopeText(cmd.Scope(), "aggregate") != evAgg {
-				continue
-			}
-		} else {
-			if scopeText(cmd.Scope(), "dynamicConsistencyBoundary") == "" {
-				continue
-			}
-		}
-		for _, item := range cmd.Publishes().Seq() {
-			v, ok := item.Text()
-			if !ok || v != evName {
-				continue
-			}
-			if cName, ok := cmd.Name().Text(); ok {
-				out = append(out, cName)
-			}
-			break
+	for _, cmd := range m.PublishersOf(event) {
+		name, ok := cmd.Name().Text()
+		if ok {
+			out = append(out, name)
 		}
 	}
-	sort.Strings(out)
 	return out
 }
 

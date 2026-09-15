@@ -391,10 +391,14 @@ func checkCommandPublishes(m *model.Model, cmd model.CommandView) []diag.Diagnos
 			continue
 		}
 
+		// Acceptance is the model's single definition of
+		// the publishing relation; only the diagnostics for
+		// a rejected entry are worked out here.
+		if _, exists := m.PublishedEvent(cmd, name); exists {
+			continue
+		}
+
 		if isAggregateBound {
-			if _, exists := m.LookupEvent(expectedDomain, expectedBC, expectedAggregate, name); exists {
-				continue
-			}
 			// Maybe the event lives in another aggregate of the same BC.
 			if other, otherAgg, found := findEventInBC(m, expectedDomain, expectedBC, name); found {
 				display := otherAgg
@@ -413,14 +417,9 @@ func checkCommandPublishes(m *model.Model, cmd model.CommandView) []diag.Diagnos
 			continue
 		}
 
-		// DCB-bound: free-standing BC-scoped event accepted.
-		if _, exists := m.LookupEvent(expectedDomain, expectedBC, "", name); exists {
-			continue
-		}
-		// Or any aggregate-bound event in the same BC - DCBs deliberately span aggregates.
-		if _, _, found := findEventInBC(m, expectedDomain, expectedBC, name); found {
-			continue
-		}
+		// DCB-bound and rejected: the event exists nowhere in
+		// this bounded context, so it is either in another
+		// one or missing altogether.
 		if other, otherBC, found := findEventAnyBC(m, expectedDomain, name); found {
 			out = append(out, mismatchedParentDiag(item, "event", name, "bounded-context", expectedBC, otherBC, other.Name().Location()))
 			continue

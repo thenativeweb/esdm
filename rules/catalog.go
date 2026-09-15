@@ -22,7 +22,6 @@ func Catalog() []Rule {
 		newProcessManagerWithoutEventReactionsRule(),
 		newReadModelWithoutQueryRule(),
 		newOrphanActorRule(),
-		newCrossAggregateCommandEmissionRule(),
 		newAggregateIdentifiedByFieldRule(),
 		newDynamicConsistencyBoundaryIdentifiedByFieldRule(),
 		newProcessManagerCorrelatedByFieldRule(),

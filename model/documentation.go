@@ -10,4 +10,11 @@
 // and the model index resolves entity names to their views.
 // Rules query the index; the index never copies or
 // transforms data.
+//
+// The index also answers the few relationship questions
+// that more than one consumer asks - first of all which
+// commands publish an event. Such a question has exactly
+// one definition here, and the resolver, the rules, and the
+// view all use it, instead of each rebuilding the relation
+// from the raw scopes and drifting apart.
 package model
