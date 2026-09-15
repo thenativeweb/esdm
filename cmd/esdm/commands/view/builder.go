@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/thenativeweb/esdm/ast"
 	"github.com/thenativeweb/esdm/model"
 	"github.com/thenativeweb/esdm/modelpath"
 )
@@ -697,22 +696,16 @@ func buildContextMapping(contextMapping model.ContextMappingView, withDetails bo
 	return n
 }
 
+// buildFeature renders a feature without naming the unit it
+// is about: the feature sits under that unit in the tree,
+// so repeating it as a tag would say the same thing twice.
 func buildFeature(feature model.FeatureView, withDetails bool) *Node {
 	name, _ := feature.Name().Text()
-	scope := feature.Scope()
 
 	n := &Node{
 		Kind:     "feature",
 		Name:     name,
 		Location: nameLocation(feature),
-	}
-
-	variant, target := featureVariantAndTarget(scope)
-	if variant != "" {
-		n.Tags = append(n.Tags, variant)
-	}
-	if target != "" {
-		n.Tags = append(n.Tags, target)
 	}
 
 	scenarios := feature.Scenarios().Seq()
@@ -734,29 +727,6 @@ func buildFeature(feature model.FeatureView, withDetails bool) *Node {
 		}
 	}
 	return n
-}
-
-// featureVariantAndTarget returns the discriminator name
-// (aggregate / dynamic-consistency-boundary / process-
-// manager / read-model) of the feature's scope plus the
-// bare name of the targeted unit. Both default to "" when
-// no recognized discriminator is present.
-func featureVariantAndTarget(scope ast.Node) (string, string) {
-	switch {
-	case scope.Field("aggregate").Exists():
-		t, _ := scope.Field("aggregate").Text()
-		return "aggregate", t
-	case scope.Field("dynamicConsistencyBoundary").Exists():
-		t, _ := scope.Field("dynamicConsistencyBoundary").Text()
-		return "dynamic-consistency-boundary", t
-	case scope.Field("processManager").Exists():
-		t, _ := scope.Field("processManager").Text()
-		return "process-manager", t
-	case scope.Field("readModel").Exists():
-		t, _ := scope.Field("readModel").Text()
-		return "read-model", t
-	}
-	return "", ""
 }
 
 func buildStory(story model.DomainStoryView, withDetails bool) *Node {

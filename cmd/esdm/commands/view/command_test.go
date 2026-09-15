@@ -730,6 +730,9 @@ func TestViewCommand(t *testing.T) {
 				require.NoError(t, err)
 				assert.Contains(t, out, c.feature)
 				assert.Contains(t, out, c.stats)
+				// The unit is the feature's parent now, so a
+				// tag repeating it would be redundant.
+				assert.NotContains(t, out, c.feature+" (")
 			})
 		}
 	})
