@@ -16,8 +16,9 @@ const (
 
 func runUpdateCheck(cmd *cobra.Command) {
 	stderr := cmd.ErrOrStderr()
-	isTerminal := cmdutils.WriterIsTerminal(stderr)
-	if shouldSkipUpdateCheck(cmdutils.Version, isTerminal) {
+	isStdoutTerminal := cmdutils.WriterIsTerminal(cmd.OutOrStdout())
+	isStderrTerminal := cmdutils.WriterIsTerminal(stderr)
+	if shouldSkipUpdateCheck(cmdutils.Version, isStdoutTerminal, isStderrTerminal) {
 		return
 	}
 
@@ -31,11 +32,19 @@ func runUpdateCheck(cmd *cobra.Command) {
 		Endpoint:       update.DefaultEndpoint,
 		CacheDir:       cacheDir,
 		Stderr:         stderr,
-		Color:          isTerminal,
+		Color:          isStderrTerminal,
 	})
 }
 
-func shouldSkipUpdateCheck(version string, isTerminal bool) bool {
+// shouldSkipUpdateCheck decides whether the version check
+// stays quiet. The hint is written to stderr, but stderr
+// being a terminal is not enough to conclude that a person
+// is watching: a pipe, a redirect, or a shell that sources
+// `esdm completion` at startup captures stdout while stderr
+// still points at the screen. The hint is only useful when
+// someone is actually looking at the command's output, so
+// both streams have to be terminals.
+func shouldSkipUpdateCheck(version string, isStdoutTerminal, isStderrTerminal bool) bool {
 	if version == devVersionMarker {
 		return true
 	}
@@ -45,7 +54,7 @@ func shouldSkipUpdateCheck(version string, isTerminal bool) bool {
 	if os.Getenv("CI") != "" {
 		return true
 	}
-	if !isTerminal {
+	if !isStdoutTerminal || !isStderrTerminal {
 		return true
 	}
 	return false
