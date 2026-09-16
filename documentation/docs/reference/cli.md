@@ -32,6 +32,8 @@ esdm glossary [path] [flags]
 
 The optional `[path]` argument narrows the output to a sub-region of the model. The path follows the model hierarchy – Domain, then Bounded Context – separated by a slash. A single segment selects a Domain and emits the glossary for every Bounded Context inside it; two segments select a single Bounded Context. A bare `esdm glossary` with no path covers the whole model. A segment that names no such Domain or Bounded Context, or that reaches below the Bounded Context level, is rejected as invalid input.
 
+The optional `--language` flag takes a BCP 47 language tag such as `de` or `de-AT` and renders the glossary in that language: a Bounded Context written in it is rendered as is, every other one through the translations its terms declare, including the translations' own *Avoid* notes. A term without a translation into the requested language keeps its primary form and is marked with an italic *No translation into …* note. Without the flag, every Bounded Context is rendered in its own language. A value that is not a language tag is rejected as invalid input.
+
 The directory holding the model is selected with `-d` / `--directory`, defaulting to the current working directory. There is no `--color` flag – the output is Markdown meant for files and renderers, not a terminal. Linter findings do not block the glossary; as long as the model resolves, the command emits whatever ubiquitous language it finds. When no Bounded Context in scope declares any, the output is just the `# Glossary` heading.
 
 The exit code is `0` on success, the empty-glossary case included. It is non-zero only when the path argument is invalid or the model cannot be resolved at all – run `esdm lint` to find out why in the latter case.
@@ -42,6 +44,7 @@ Typical invocations look like this:
 esdm glossary
 esdm glossary <domain>
 esdm glossary <domain>/<bounded-context> > glossary.md
+esdm glossary --language de
 ```
 
 ## `esdm lint`
@@ -98,7 +101,7 @@ esdm view [path] [flags]
 
 ### Anatomy
 
-`esdm view` renders a hierarchical summary of an ESDM model. The optional `[path]` argument filters the rendered tree to a sub-region of the model, with the path following the model hierarchy – Domain, Bounded Context, Consistency Unit – separated by slashes. A bare `esdm view` with no path renders the full model.
+`esdm view` renders a hierarchical summary of an ESDM model. The optional `[path]` argument filters the rendered tree to a sub-region of the model, with the path following the model hierarchy – Domain, Bounded Context, Consistency Unit – separated by slashes. Each segment matches elements by name; when several elements of different kinds share a name at one position, every match is rendered. A bare `esdm view` with no path renders the full model.
 
 The directory holding the model is selected with `-d` / `--directory`, defaulting to the current working directory. The optional `--with-details` flag (default `false`) includes node-level details such as schemas, invariants, and rule prose alongside the skeleton; without it, the output is just the structural tree. The `--color` flag controls coloring with the same `auto` / `always` / `never` semantics as on `esdm lint`.
 

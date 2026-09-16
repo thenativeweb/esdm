@@ -51,6 +51,28 @@ data:
   type: object
 `
 
+// featureTemplate is a feature named `happy-path` about the
+// aggregate whose name is substituted in. Two of them with
+// different aggregates sit at different positions and must
+// coexist.
+const featureTemplate = `apiVersion: schema.esdm.io/given-when-then/v1
+kind: feature
+name: happy-path
+scope:
+  domain: commerce
+  boundedContext: ordering
+  aggregate: %s
+scenarios:
+  - name: succeeds
+    when:
+      command: place
+      data: {}
+    then:
+      events:
+        - event: placed
+          data: {}
+`
+
 const aggregateTemplate = `apiVersion: schema.esdm.io/core/v1
 kind: aggregate
 name: %s
@@ -822,7 +844,28 @@ scenarios:
 `)
 		m, _ := resolver.Resolve(parseAll(t, parents, featurePath))
 
-		assert.Contains(t, m.Extensions.GivenWhenThen.Features, "commerce/order-cancellation")
+		require.Len(t, m.Extensions.GivenWhenThen.Features, 1)
+		for _, feature := range m.Extensions.GivenWhenThen.Features {
+			name, _ := feature.Name().Text()
+			assert.Equal(t, "order-cancellation", name)
+		}
+	})
+
+	t.Run("indexes two same-named features that target different consistency units", func(t *testing.T) {
+		dir := t.TempDir()
+		parents := writeParents(t, dir)
+		invoice := writeAggregate(t, dir, "invoice.esdm.yaml", "invoice")
+		orderFeature := filepath.Join(dir, "order-happy-path.esdm.yaml")
+		writeFile(t, orderFeature, fmt.Sprintf(featureTemplate, "order"))
+		invoiceFeature := filepath.Join(dir, "invoice-happy-path.esdm.yaml")
+		writeFile(t, invoiceFeature, fmt.Sprintf(featureTemplate, "invoice"))
+
+		m, diagnostics := resolver.Resolve(parseAll(t, parents, invoice, orderFeature, invoiceFeature))
+
+		for _, d := range diagnostics {
+			assert.NotEqual(t, "esdm/structure/duplicate-name", d.RuleID, "unexpected duplicate-name: %+v", d)
+		}
+		assert.Len(t, m.Extensions.GivenWhenThen.Features, 2)
 	})
 
 	t.Run("does not conflate an extension kind with a core kind of the same name", func(t *testing.T) {
@@ -852,6 +895,69 @@ sentences:
 			assert.NotEqual(t, "esdm/structure/duplicate-name", d.RuleID,
 				"extension kind and core kind should not collide: %+v", d)
 		}
+	})
+
+	t.Run("resolves term pairs whose terms exist in both bounded contexts", func(t *testing.T) {
+		dir := t.TempDir()
+		contexts := filepath.Join(dir, "contexts.esdm.yaml")
+		writeFile(t, contexts, salesAndBillingYAML)
+		mapping := filepath.Join(dir, "mapping.esdm.yaml")
+		writeFile(t, mapping, salesBillingMappingYAML+`terms:
+  - customer: Customer
+    supplier: Account
+`)
+		_, diagnostics := resolver.Resolve(parseAll(t, contexts, mapping))
+
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("flags a term pair whose term is not in the endpoint's ubiquitous language", func(t *testing.T) {
+		dir := t.TempDir()
+		contexts := filepath.Join(dir, "contexts.esdm.yaml")
+		writeFile(t, contexts, salesAndBillingYAML)
+		mapping := filepath.Join(dir, "mapping.esdm.yaml")
+		writeFile(t, mapping, salesBillingMappingYAML+`terms:
+  - customer: Customer
+    supplier: Debtor
+`)
+		_, diagnostics := resolver.Resolve(parseAll(t, contexts, mapping))
+
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, "esdm/structure/unresolved-reference", diagnostics[0].RuleID)
+		assert.Equal(t, `term "Debtor" is not defined in the ubiquitous language of bounded context "billing"`, diagnostics[0].Message)
+	})
+
+	t.Run("flags term pairs on a mapping whose endpoint is an external system", func(t *testing.T) {
+		dir := t.TempDir()
+		contexts := filepath.Join(dir, "contexts.esdm.yaml")
+		writeFile(t, contexts, salesAndBillingYAML+`---
+apiVersion: schema.esdm.io/core/v1
+kind: external-system
+name: stripe
+scope:
+  domain: commerce
+direction: outbound
+`)
+		mapping := filepath.Join(dir, "mapping.esdm.yaml")
+		writeFile(t, mapping, `apiVersion: schema.esdm.io/core/v1
+kind: context-mapping
+name: billing-stripe
+type: customer-supplier
+customer:
+  domain: commerce
+  boundedContext: billing
+supplier:
+  domain: commerce
+  externalSystem: stripe
+terms:
+  - customer: Account
+    supplier: Customer
+`)
+		_, diagnostics := resolver.Resolve(parseAll(t, contexts, mapping))
+
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, "esdm/structure/unresolved-reference", diagnostics[0].RuleID)
+		assert.Equal(t, `term mappings require both endpoints to be bounded contexts; "stripe" is an external system`, diagnostics[0].Message)
 	})
 
 	t.Run("flags context-mapping endpoints that reference a non-existent bounded-context", func(t *testing.T) {
@@ -1271,3 +1377,42 @@ func assertHasMismatch(t *testing.T, diagnostics []diag.Diagnostic, name, parent
 	}
 	require.Failf(t, "mismatch diagnostic missing", "expected a diagnostic mentioning %q with %s %q, got %+v", name, parentKind, expectedParent, diagnostics)
 }
+
+// salesAndBillingYAML holds two bounded contexts with a
+// one-term ubiquitous language each, for the term-pair tests.
+const salesAndBillingYAML = `apiVersion: schema.esdm.io/core/v1
+kind: domain
+name: commerce
+---
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: sales
+scope:
+  domain: commerce
+language: en
+ubiquitousLanguage:
+  - term: Customer
+    definition: A party that buys from us.
+---
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: billing
+scope:
+  domain: commerce
+language: en
+ubiquitousLanguage:
+  - term: Account
+    definition: The ledger of a party we bill.
+`
+
+const salesBillingMappingYAML = `apiVersion: schema.esdm.io/core/v1
+kind: context-mapping
+name: sales-billing
+type: customer-supplier
+customer:
+  domain: commerce
+  boundedContext: sales
+supplier:
+  domain: commerce
+  boundedContext: billing
+`

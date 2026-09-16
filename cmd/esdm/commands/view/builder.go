@@ -4,25 +4,26 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/thenativeweb/esdm/ast"
 	"github.com/thenativeweb/esdm/model"
 	"github.com/thenativeweb/esdm/modelpath"
 )
 
-// BuildTree returns the render tree for the given
-// resolved model, narrowed to the subtree identified by
-// p. An empty Path selects the entire model.
-func BuildTree(m *model.Model, p modelpath.Path, withDetails bool) (*Node, error) {
-	root := buildAllDomains(m, withDetails)
+// BuildTree returns the render tree for the whole model:
+// a synthetic root with one child per domain. Narrowing to
+// a path is a separate step, see Narrow, so that callers
+// can annotate the complete tree first.
+func BuildTree(m *model.Model, withDetails bool) *Node {
+	return buildAllDomains(m, withDetails)
+}
+
+// Narrow reduces a render tree to the subtree the path
+// selects. An empty path returns the tree unchanged; an
+// unknown segment returns an error.
+func Narrow(root *Node, p modelpath.Path) (*Node, error) {
 	if len(p.Segments) == 0 {
 		return root, nil
 	}
-
-	target, err := narrow(root, p.Segments)
-	if err != nil {
-		return nil, err
-	}
-	return target, nil
+	return narrow(root, p.Segments)
 }
 
 // buildAllDomains constructs the synthetic root node
@@ -44,7 +45,6 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 	n := &Node{
 		Kind:     "domain",
 		Name:     name,
-		Key:      name,
 		Location: nameLocation(d),
 	}
 
@@ -56,7 +56,6 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 	externalSystemCount := 0
 	contextMappingCount := 0
 	storyCount := 0
-	featureCount := 0
 
 	for _, sub := range filterSubdomainsByDomain(m, name) {
 		n.Children = append(n.Children, buildSubdomain(sub, withDetails))
@@ -67,7 +66,7 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 		boundedContextCount++
 	}
 	for _, processManager := range filterProcessManagersByDomain(m, name) {
-		n.Children = append(n.Children, buildProcessManager(processManager, withDetails))
+		n.Children = append(n.Children, buildProcessManager(m, processManager, withDetails))
 		processManagerCount++
 	}
 	for _, eventHandler := range filterEventHandlersByDomain(m, name) {
@@ -93,10 +92,6 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 		n.Children = append(n.Children, buildStory(story, withDetails))
 		storyCount++
 	}
-	for _, feature := range filterFeaturesByDomain(m, name) {
-		n.Children = append(n.Children, buildFeature(feature, withDetails))
-		featureCount++
-	}
 
 	stats := plural(subdomainCount, "sub")
 	if s := plural(boundedContextCount, "bc"); s != "" {
@@ -120,9 +115,6 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 	if s := plural(storyCount, "story"); s != "" {
 		stats = appendStat(stats, s)
 	}
-	if s := plural(featureCount, "feat"); s != "" {
-		stats = appendStat(stats, s)
-	}
 	if stats != "" {
 		n.Stats = []string{stats}
 	}
@@ -133,13 +125,11 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 func buildSubdomain(s model.SubdomainView, withDetails bool) *Node {
 	name, _ := s.Name().Text()
 	subType, _ := s.Type().Text()
-	domain := scopeText(s.Scope(), "domain")
 
 	n := &Node{
 		Kind:     "subdomain",
 		Name:     name,
 		Tags:     []string{subType},
-		Key:      domain + "/" + name,
 		Location: nameLocation(s),
 	}
 	var bcs []string
@@ -166,14 +156,15 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 	n := &Node{
 		Kind:     "bounded-context",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(boundedContext),
 	}
 
 	aggregateCount := 0
 	dynamicConsistencyBoundaryCount := 0
+	freeStandingEventCount := 0
 	readModelCount := 0
 	queryCount := 0
+	entityCount := 0
 	valueObjectCount := 0
 	domainServiceCount := 0
 	actorCount := 0
@@ -186,13 +177,25 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 		n.Children = append(n.Children, buildDCB(m, dcb, withDetails))
 		dynamicConsistencyBoundaryCount++
 	}
+	// Free-standing events sit directly after the DCBs:
+	// their scope names the bounded context and nothing
+	// below it, so the bounded context is their position,
+	// next to the DCB-bound commands that publish them.
+	for _, event := range filterFreeStandingEventsByBoundedContext(m, domain, name) {
+		n.Children = append(n.Children, buildEvent(m, event, withDetails))
+		freeStandingEventCount++
+	}
 	for _, readModel := range filterReadModelsByBoundedContext(m, domain, name) {
-		n.Children = append(n.Children, buildReadModel(readModel, withDetails))
+		n.Children = append(n.Children, buildReadModel(m, readModel, withDetails))
 		readModelCount++
 	}
 	for _, query := range filterQueriesByBoundedContext(m, domain, name) {
 		n.Children = append(n.Children, buildQuery(query, withDetails))
 		queryCount++
+	}
+	for _, entity := range filterEntitiesByBoundedContext(m, domain, name) {
+		n.Children = append(n.Children, buildEntity(entity, withDetails))
+		entityCount++
 	}
 	for _, valueObject := range filterValueObjectsByBoundedContext(m, domain, name) {
 		n.Children = append(n.Children, buildValueObject(valueObject, withDetails))
@@ -211,10 +214,16 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 	if s := plural(dynamicConsistencyBoundaryCount, "dcb"); s != "" {
 		stats = appendStat(stats, s)
 	}
+	if s := plural(freeStandingEventCount, "evt"); s != "" {
+		stats = appendStat(stats, s)
+	}
 	if s := plural(readModelCount, "rm"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if s := plural(queryCount, "qry"); s != "" {
+		stats = appendStat(stats, s)
+	}
+	if s := plural(entityCount, "ent"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if s := plural(valueObjectCount, "vo"); s != "" {
@@ -257,7 +266,6 @@ func buildAggregate(m *model.Model, aggregate model.AggregateView, withDetails b
 	n := &Node{
 		Kind:     "aggregate",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(aggregate),
 	}
 
@@ -271,6 +279,11 @@ func buildAggregate(m *model.Model, aggregate model.AggregateView, withDetails b
 		n.Children = append(n.Children, buildEvent(m, event, withDetails))
 		evtCount++
 	}
+	featCount := 0
+	for _, feature := range filterFeaturesByUnit(m, "aggregate", domain, boundedContext, name) {
+		n.Children = append(n.Children, buildFeature(feature, withDetails))
+		featCount++
+	}
 	invCount := len(aggregate.Invariants().Seq())
 
 	stats := plural(cmdCount, "cmd")
@@ -278,6 +291,9 @@ func buildAggregate(m *model.Model, aggregate model.AggregateView, withDetails b
 		stats = appendStat(stats, s)
 	}
 	if s := plural(invCount, "inv"); s != "" {
+		stats = appendStat(stats, s)
+	}
+	if s := plural(featCount, "feat"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if stats != "" {
@@ -316,7 +332,6 @@ func buildDCB(m *model.Model, dcb model.DynamicConsistencyBoundaryView, withDeta
 	n := &Node{
 		Kind:     "dynamic-consistency-boundary",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(dcb),
 	}
 
@@ -325,9 +340,17 @@ func buildDCB(m *model.Model, dcb model.DynamicConsistencyBoundaryView, withDeta
 		n.Children = append(n.Children, buildCommand(cmd, withDetails))
 		cmdCount++
 	}
+	featCount := 0
+	for _, feature := range filterFeaturesByUnit(m, "dynamicConsistencyBoundary", domain, boundedContext, name) {
+		n.Children = append(n.Children, buildFeature(feature, withDetails))
+		featCount++
+	}
 	consults := len(dcb.Consults().Seq())
 	stats := plural(cmdCount, "cmd")
 	if s := plural(consults, "consult"); s != "" {
+		stats = appendStat(stats, s)
+	}
+	if s := plural(featCount, "feat"); s != "" {
 		stats = appendStat(stats, s)
 	}
 	if stats != "" {
@@ -345,17 +368,10 @@ func buildDCB(m *model.Model, dcb model.DynamicConsistencyBoundaryView, withDeta
 
 func buildCommand(cmd model.CommandView, withDetails bool) *Node {
 	name, _ := cmd.Name().Text()
-	domain := scopeText(cmd.Scope(), "domain")
-	boundedContext := scopeText(cmd.Scope(), "boundedContext")
-	parent := scopeText(cmd.Scope(), "aggregate")
-	if parent == "" {
-		parent = scopeText(cmd.Scope(), "dynamicConsistencyBoundary")
-	}
 
 	n := &Node{
 		Kind:     "command",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + parent + "/" + name,
 		Location: nameLocation(cmd),
 	}
 
@@ -394,14 +410,10 @@ func buildCommand(cmd model.CommandView, withDetails bool) *Node {
 
 func buildEvent(m *model.Model, event model.EventView, withDetails bool) *Node {
 	name, _ := event.Name().Text()
-	domain := scopeText(event.Scope(), "domain")
-	boundedContext := scopeText(event.Scope(), "boundedContext")
-	aggregate := scopeText(event.Scope(), "aggregate")
 
 	n := &Node{
 		Kind:     "event",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + aggregate + "/" + name,
 		Location: nameLocation(event),
 	}
 	if publishers := filterCommandsPublishingEvent(m, event); len(publishers) > 0 {
@@ -416,7 +428,7 @@ func buildEvent(m *model.Model, event model.EventView, withDetails bool) *Node {
 	return n
 }
 
-func buildReadModel(readModel model.ReadModelView, withDetails bool) *Node {
+func buildReadModel(m *model.Model, readModel model.ReadModelView, withDetails bool) *Node {
 	name, _ := readModel.Name().Text()
 	domain := scopeText(readModel.Scope(), "domain")
 	boundedContext := scopeText(readModel.Scope(), "boundedContext")
@@ -424,12 +436,19 @@ func buildReadModel(readModel model.ReadModelView, withDetails bool) *Node {
 	n := &Node{
 		Kind:     "read-model",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(readModel),
 	}
 	projections := readModel.Projections().Seq()
 	if len(projections) > 0 {
 		n.Stats = []string{fmt.Sprintf("← %s", plural(len(projections), "evt"))}
+	}
+	featCount := 0
+	for _, feature := range filterFeaturesByUnit(m, "readModel", domain, boundedContext, name) {
+		n.Children = append(n.Children, buildFeature(feature, withDetails))
+		featCount++
+	}
+	if s := plural(featCount, "feat"); s != "" {
+		n.Stats = append(n.Stats, s)
 	}
 	if withDetails {
 		for _, proj := range projections {
@@ -452,13 +471,10 @@ func buildReadModel(readModel model.ReadModelView, withDetails bool) *Node {
 
 func buildQuery(query model.QueryView, withDetails bool) *Node {
 	name, _ := query.Name().Text()
-	domain := scopeText(query.Scope(), "domain")
-	boundedContext := scopeText(query.Scope(), "boundedContext")
 
 	n := &Node{
 		Kind:     "query",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(query),
 	}
 	if rmName, ok := query.ReadModel().Text(); ok {
@@ -483,14 +499,50 @@ func buildQuery(query model.QueryView, withDetails bool) *Node {
 	return n
 }
 
+func buildEntity(entity model.EntityView, withDetails bool) *Node {
+	name, _ := entity.Name().Text()
+	n := &Node{
+		Kind:     "entity",
+		Name:     name,
+		Location: nameLocation(entity),
+	}
+	invariantCount := len(entity.Invariants().Seq())
+	if s := plural(invariantCount, "inv"); s != "" {
+		n.Stats = []string{s}
+	}
+	if withDetails {
+		// An entity's identity comes either from a field of
+		// its own schema or from a static value; there is no
+		// generated variant, unlike aggregates.
+		ib := entity.IdentifiedBy()
+		if src, ok := ib.Field("source").Text(); ok {
+			switch src {
+			case "schema":
+				field, _ := ib.Field("field").Text()
+				n.Lines = append(n.Lines, fmt.Sprintf("identifiedBy: schema.%s", field))
+			case "static":
+				value, _ := ib.Field("value").Text()
+				n.Lines = append(n.Lines, fmt.Sprintf("identifiedBy: static %q", value))
+			}
+		}
+		schema := schemaSummary(entity.Schema())
+		if schema != "" {
+			n.Lines = append(n.Lines, "schema: "+schema)
+		}
+		for _, inv := range entity.Invariants().Seq() {
+			invName, _ := inv.Field("name").Text()
+			rule, _ := inv.Field("rule").Text()
+			n.Lines = append(n.Lines, fmt.Sprintf("invariant %q: %s", invName, rule))
+		}
+	}
+	return n
+}
+
 func buildValueObject(valueObject model.ValueObjectView, withDetails bool) *Node {
 	name, _ := valueObject.Name().Text()
-	domain := scopeText(valueObject.Scope(), "domain")
-	boundedContext := scopeText(valueObject.Scope(), "boundedContext")
 	n := &Node{
 		Kind:     "value-object",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(valueObject),
 	}
 	invariantCount := len(valueObject.Invariants().Seq())
@@ -513,12 +565,9 @@ func buildValueObject(valueObject model.ValueObjectView, withDetails bool) *Node
 
 func buildDomainService(domainService model.DomainServiceView, withDetails bool) *Node {
 	name, _ := domainService.Name().Text()
-	domain := scopeText(domainService.Scope(), "domain")
-	boundedContext := scopeText(domainService.Scope(), "boundedContext")
 	n := &Node{
 		Kind:     "domain-service",
 		Name:     name,
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(domainService),
 	}
 	functionCount := len(domainService.Functions().Seq())
@@ -536,14 +585,11 @@ func buildDomainService(domainService model.DomainServiceView, withDetails bool)
 
 func buildActor(a model.ActorView, withDetails bool) *Node {
 	name, _ := a.Name().Text()
-	domain := scopeText(a.Scope(), "domain")
-	boundedContext := scopeText(a.Scope(), "boundedContext")
 	atype, _ := a.Type().Text()
 	n := &Node{
 		Kind:     "actor",
 		Name:     name,
 		Tags:     []string{atype},
-		Key:      domain + "/" + boundedContext + "/" + name,
 		Location: nameLocation(a),
 	}
 	if withDetails {
@@ -556,17 +602,24 @@ func buildActor(a model.ActorView, withDetails bool) *Node {
 	return n
 }
 
-func buildProcessManager(processManager model.ProcessManagerView, withDetails bool) *Node {
+func buildProcessManager(m *model.Model, processManager model.ProcessManagerView, withDetails bool) *Node {
 	name, _ := processManager.Name().Text()
 	domain := scopeText(processManager.Scope(), "domain")
 	n := &Node{
 		Kind:     "process-manager",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(processManager),
 	}
 	if deliveryGuarantee, ok := processManager.DeliveryGuarantee().Text(); ok {
 		n.Stats = append(n.Stats, deliveryGuarantee)
+	}
+	featCount := 0
+	for _, feature := range filterFeaturesByUnit(m, "processManager", domain, "", name) {
+		n.Children = append(n.Children, buildFeature(feature, withDetails))
+		featCount++
+	}
+	if s := plural(featCount, "feat"); s != "" {
+		n.Stats = append(n.Stats, s)
 	}
 	if withDetails {
 		for _, r := range processManager.Reactions().Seq() {
@@ -585,11 +638,9 @@ func buildProcessManager(processManager model.ProcessManagerView, withDetails bo
 
 func buildEventHandler(eventHandler model.EventHandlerView, withDetails bool) *Node {
 	name, _ := eventHandler.Name().Text()
-	domain := scopeText(eventHandler.Scope(), "domain")
 	n := &Node{
 		Kind:     "event-handler",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(eventHandler),
 	}
 	if deliveryGuarantee, ok := eventHandler.DeliveryGuarantee().Text(); ok {
@@ -606,11 +657,9 @@ func buildEventHandler(eventHandler model.EventHandlerView, withDetails bool) *N
 
 func buildPolicy(p model.PolicyView, withDetails bool) *Node {
 	name, _ := p.Name().Text()
-	domain := scopeText(p.Scope(), "domain")
 	n := &Node{
 		Kind:     "policy",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(p),
 	}
 	if deliveryGuarantee, ok := p.DeliveryGuarantee().Text(); ok {
@@ -621,11 +670,9 @@ func buildPolicy(p model.PolicyView, withDetails bool) *Node {
 
 func buildExternalSystem(externalSystem model.ExternalSystemView, withDetails bool) *Node {
 	name, _ := externalSystem.Name().Text()
-	domain := scopeText(externalSystem.Scope(), "domain")
 	n := &Node{
 		Kind:     "external-system",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(externalSystem),
 	}
 	if d, ok := externalSystem.Direction().Text(); ok {
@@ -644,30 +691,21 @@ func buildContextMapping(contextMapping model.ContextMappingView, withDetails bo
 		Kind:     "context-mapping",
 		Name:     name,
 		Tags:     []string{cmType},
-		Key:      name,
 		Location: nameLocation(contextMapping),
 	}
 	return n
 }
 
+// buildFeature renders a feature without naming the unit it
+// is about: the feature sits under that unit in the tree,
+// so repeating it as a tag would say the same thing twice.
 func buildFeature(feature model.FeatureView, withDetails bool) *Node {
 	name, _ := feature.Name().Text()
-	scope := feature.Scope()
-	domain := scopeText(scope, "domain")
 
 	n := &Node{
 		Kind:     "feature",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(feature),
-	}
-
-	variant, target := featureVariantAndTarget(scope)
-	if variant != "" {
-		n.Tags = append(n.Tags, variant)
-	}
-	if target != "" {
-		n.Tags = append(n.Tags, target)
 	}
 
 	scenarios := feature.Scenarios().Seq()
@@ -691,37 +729,12 @@ func buildFeature(feature model.FeatureView, withDetails bool) *Node {
 	return n
 }
 
-// featureVariantAndTarget returns the discriminator name
-// (aggregate / dynamic-consistency-boundary / process-
-// manager / read-model) of the feature's scope plus the
-// bare name of the targeted unit. Both default to "" when
-// no recognized discriminator is present.
-func featureVariantAndTarget(scope ast.Node) (string, string) {
-	switch {
-	case scope.Field("aggregate").Exists():
-		t, _ := scope.Field("aggregate").Text()
-		return "aggregate", t
-	case scope.Field("dynamicConsistencyBoundary").Exists():
-		t, _ := scope.Field("dynamicConsistencyBoundary").Text()
-		return "dynamic-consistency-boundary", t
-	case scope.Field("processManager").Exists():
-		t, _ := scope.Field("processManager").Text()
-		return "process-manager", t
-	case scope.Field("readModel").Exists():
-		t, _ := scope.Field("readModel").Text()
-		return "read-model", t
-	}
-	return "", ""
-}
-
 func buildStory(story model.DomainStoryView, withDetails bool) *Node {
 	name, _ := story.Name().Text()
-	domain := scopeText(story.Scope(), "domain")
 
 	n := &Node{
 		Kind:     "domain-story",
 		Name:     name,
-		Key:      domain + "/" + name,
 		Location: nameLocation(story),
 	}
 	if pointInTime, ok := story.PointInTime().Text(); ok {
@@ -844,6 +857,51 @@ func filterQueriesByBoundedContext(m *model.Model, domain, boundedContext string
 	return out
 }
 
+func filterEntitiesByBoundedContext(m *model.Model, domain, boundedContext string) []model.EntityView {
+	var out []model.EntityView
+	for _, v := range m.Entities {
+		if scopeText(v.Scope(), "domain") != domain {
+			continue
+		}
+		if scopeText(v.Scope(), "boundedContext") != boundedContext {
+			continue
+		}
+		out = append(out, v)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ni, _ := out[i].Name().Text()
+		nj, _ := out[j].Name().Text()
+		return ni < nj
+	})
+	return out
+}
+
+// filterFreeStandingEventsByBoundedContext returns the
+// events whose scope names no aggregate: they belong to
+// the bounded context itself and are published by
+// DCB-bound commands.
+func filterFreeStandingEventsByBoundedContext(m *model.Model, domain, boundedContext string) []model.EventView {
+	var out []model.EventView
+	for _, v := range m.Events {
+		if scopeText(v.Scope(), "domain") != domain {
+			continue
+		}
+		if scopeText(v.Scope(), "boundedContext") != boundedContext {
+			continue
+		}
+		if scopeText(v.Scope(), "aggregate") != "" {
+			continue
+		}
+		out = append(out, v)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		ni, _ := out[i].Name().Text()
+		nj, _ := out[j].Name().Text()
+		return ni < nj
+	})
+	return out
+}
+
 func filterValueObjectsByBoundedContext(m *model.Model, domain, boundedContext string) []model.ValueObjectView {
 	var out []model.ValueObjectView
 	for _, v := range m.ValueObjects {
@@ -933,48 +991,18 @@ func filterCommandsByDCB(m *model.Model, domain, boundedContext, dcb string) []m
 	return out
 }
 
-// filterCommandsPublishingEvent returns the names of
-// every command that publishes ev. Because command.publishes
-// carries bare event names, the publisher must sit in the
-// same scope as the event - the same aggregate for
-// aggregate-owned events, the same DCB for free-standing
-// events. The result is sorted alphabetically so the
-// renderer's output is deterministic.
+// filterCommandsPublishingEvent returns the names of every
+// command that publishes event, as the model defines the
+// relation. Sorted, so the renderer's output is
+// deterministic.
 func filterCommandsPublishingEvent(m *model.Model, event model.EventView) []string {
-	evName, _ := event.Name().Text()
-	evDomain := scopeText(event.Scope(), "domain")
-	evBC := scopeText(event.Scope(), "boundedContext")
-	evAgg := scopeText(event.Scope(), "aggregate")
-
 	var out []string
-	for _, cmd := range m.Commands {
-		if scopeText(cmd.Scope(), "domain") != evDomain {
-			continue
-		}
-		if scopeText(cmd.Scope(), "boundedContext") != evBC {
-			continue
-		}
-		if evAgg != "" {
-			if scopeText(cmd.Scope(), "aggregate") != evAgg {
-				continue
-			}
-		} else {
-			if scopeText(cmd.Scope(), "dynamicConsistencyBoundary") == "" {
-				continue
-			}
-		}
-		for _, item := range cmd.Publishes().Seq() {
-			v, ok := item.Text()
-			if !ok || v != evName {
-				continue
-			}
-			if cName, ok := cmd.Name().Text(); ok {
-				out = append(out, cName)
-			}
-			break
+	for _, cmd := range m.PublishersOf(event) {
+		name, ok := cmd.Name().Text()
+		if ok {
+			out = append(out, name)
 		}
 	}
-	sort.Strings(out)
 	return out
 }
 
@@ -1107,12 +1135,25 @@ func filterStoriesByDomain(m *model.Model, domain string) []model.DomainStoryVie
 	return out
 }
 
-func filterFeaturesByDomain(m *model.Model, domain string) []model.FeatureView {
+// filterFeaturesByUnit returns the features whose scope
+// names the given consistency unit through unitField -
+// aggregate, dynamicConsistencyBoundary, processManager, or
+// readModel. A feature is about exactly one unit, so the
+// unit is its position in the tree; process managers are
+// domain-scoped, so their features carry no bounded context.
+func filterFeaturesByUnit(m *model.Model, unitField, domain, boundedContext, unit string) []model.FeatureView {
 	var out []model.FeatureView
 	for _, v := range m.Extensions.GivenWhenThen.Features {
-		if scopeText(v.Scope(), "domain") == domain {
-			out = append(out, v)
+		if scopeText(v.Scope(), "domain") != domain {
+			continue
 		}
+		if scopeText(v.Scope(), "boundedContext") != boundedContext {
+			continue
+		}
+		if scopeText(v.Scope(), unitField) != unit {
+			continue
+		}
+		out = append(out, v)
 	}
 	sort.Slice(out, func(i, j int) bool {
 		ni, _ := out[i].Name().Text()

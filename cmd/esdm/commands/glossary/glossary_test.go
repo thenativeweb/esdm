@@ -24,6 +24,7 @@ kind: bounded-context
 name: ordering
 scope:
   domain: shop
+language: en
 ubiquitousLanguage:
   - term: Order
     definition: A customer's request to purchase one or more products.
@@ -39,6 +40,7 @@ kind: bounded-context
 name: billing
 scope:
   domain: shop
+language: en
 ubiquitousLanguage:
   - term: Invoice
     definition: A demand for payment for an order.
@@ -58,9 +60,49 @@ kind: bounded-context
 name: inventory
 scope:
   domain: warehouse
+language: en
 ubiquitousLanguage:
   - term: SKU
     definition: A stock keeping unit.
+`
+
+// translatedModelYAML has an English context with one
+// translated and one untranslated term, and a German
+// context whose primary language is the one requested.
+const translatedModelYAML = `apiVersion: schema.esdm.io/core/v1
+kind: domain
+name: shop
+---
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: ordering
+scope:
+  domain: shop
+language: en
+ubiquitousLanguage:
+  - term: Order
+    definition: A customer's request to purchase.
+    avoid:
+      - term: Basket
+    translations:
+      - language: de
+        term: Bestellung
+        definition: Der Kaufwunsch eines Kunden.
+        avoid:
+          - term: Auftrag
+            reason: Used for production orders elsewhere.
+  - term: Customer
+    definition: A person who places orders.
+---
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: lager
+scope:
+  domain: shop
+language: de
+ubiquitousLanguage:
+  - term: Artikel
+    definition: Eine lagerbare Einheit.
 `
 
 func loadModel(t *testing.T, yaml string) *model.Model {
@@ -74,10 +116,48 @@ func loadModel(t *testing.T, yaml string) *model.Model {
 }
 
 func TestBuild(t *testing.T) {
+	t.Run("renders translations for the requested language and marks terms without one", func(t *testing.T) {
+		m := loadModel(t, translatedModelYAML)
+
+		g, err := glossary.Build(m, modelpath.Path{}, "de")
+		require.NoError(t, err)
+		require.Len(t, g.Sections, 2)
+
+		lager := g.Sections[0]
+		assert.Equal(t, "lager", lager.BoundedContext)
+		require.Len(t, lager.Terms, 1)
+		assert.Equal(t, "Artikel", lager.Terms[0].Term)
+		assert.Empty(t, lager.Terms[0].MissingTranslation)
+
+		ordering := g.Sections[1]
+		require.Len(t, ordering.Terms, 2)
+		assert.Equal(t, glossary.Term{
+			Term:       "Bestellung",
+			Definition: "Der Kaufwunsch eines Kunden.",
+			Avoid:      []glossary.Avoid{{Term: "Auftrag", Reason: "Used for production orders elsewhere."}},
+		}, ordering.Terms[0])
+		assert.Equal(t, glossary.Term{
+			Term:               "Customer",
+			Definition:         "A person who places orders.",
+			MissingTranslation: "de",
+		}, ordering.Terms[1])
+	})
+
+	t.Run("renders the primary language when no language is requested", func(t *testing.T) {
+		m := loadModel(t, translatedModelYAML)
+
+		g, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "ordering"}}, "")
+		require.NoError(t, err)
+		require.Len(t, g.Sections, 1)
+		assert.Equal(t, "Customer", g.Sections[0].Terms[0].Term)
+		assert.Equal(t, "Order", g.Sections[0].Terms[1].Term)
+		assert.Equal(t, []glossary.Avoid{{Term: "Basket"}}, g.Sections[0].Terms[1].Avoid)
+	})
+
 	t.Run("collects every bounded context with ubiquitous language, sorted by name", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		g, err := glossary.Build(m, modelpath.Path{})
+		g, err := glossary.Build(m, modelpath.Path{}, "")
 		require.NoError(t, err)
 
 		names := make([]string, 0, len(g.Sections))
@@ -90,7 +170,7 @@ func TestBuild(t *testing.T) {
 	t.Run("omits a bounded context that has no ubiquitous language", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		g, err := glossary.Build(m, modelpath.Path{})
+		g, err := glossary.Build(m, modelpath.Path{}, "")
 		require.NoError(t, err)
 
 		for _, s := range g.Sections {
@@ -101,7 +181,7 @@ func TestBuild(t *testing.T) {
 	t.Run("sorts terms alphabetically within a section", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		g, err := glossary.Build(m, modelpath.Path{})
+		g, err := glossary.Build(m, modelpath.Path{}, "")
 		require.NoError(t, err)
 
 		var ordering glossary.Section
@@ -119,7 +199,7 @@ func TestBuild(t *testing.T) {
 	t.Run("captures avoid entries with and without a reason in document order", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		g, err := glossary.Build(m, modelpath.Path{})
+		g, err := glossary.Build(m, modelpath.Path{}, "")
 		require.NoError(t, err)
 
 		var order glossary.Term
@@ -138,7 +218,7 @@ func TestBuild(t *testing.T) {
 	t.Run("narrows to a single domain when given a one-segment path", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		g, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop"}})
+		g, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop"}}, "")
 		require.NoError(t, err)
 
 		names := make([]string, 0, len(g.Sections))
@@ -151,7 +231,7 @@ func TestBuild(t *testing.T) {
 	t.Run("narrows to a single bounded context when given a two-segment path", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		g, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "ordering"}})
+		g, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "ordering"}}, "")
 		require.NoError(t, err)
 
 		require.Len(t, g.Sections, 1)
@@ -161,7 +241,7 @@ func TestBuild(t *testing.T) {
 	t.Run("returns an empty glossary for an existing bounded context without ubiquitous language", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		g, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "shipping"}})
+		g, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "shipping"}}, "")
 		require.NoError(t, err)
 		assert.Empty(t, g.Sections)
 	})
@@ -169,21 +249,21 @@ func TestBuild(t *testing.T) {
 	t.Run("rejects an unknown domain", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		_, err := glossary.Build(m, modelpath.Path{Segments: []string{"nonexistent"}})
+		_, err := glossary.Build(m, modelpath.Path{Segments: []string{"nonexistent"}}, "")
 		assert.Error(t, err)
 	})
 
 	t.Run("rejects an unknown bounded context under a known domain", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		_, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "nonexistent"}})
+		_, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "nonexistent"}}, "")
 		assert.Error(t, err)
 	})
 
 	t.Run("rejects a path that reaches below the bounded-context level", func(t *testing.T) {
 		m := loadModel(t, glossaryModelYAML)
 
-		_, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "ordering", "order"}})
+		_, err := glossary.Build(m, modelpath.Path{Segments: []string{"shop", "ordering", "order"}}, "")
 		assert.Error(t, err)
 	})
 }

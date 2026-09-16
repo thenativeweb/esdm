@@ -17,3 +17,7 @@ This builds the `esdm` binaries for all supported platforms into the `build/` di
 ```shell
 $ make
 ```
+
+## Contributing
+
+Contributions are welcome – bug reports, field reports, documentation, and code. Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** first. The one thing we'd ask you to do: open an issue before you write code, so we can agree on the direction together.

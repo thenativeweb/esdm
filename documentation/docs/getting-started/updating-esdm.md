@@ -33,7 +33,7 @@ The check fetches a **small static file** and nothing else. There's no analytics
 
 The notification is **deliberately suppressed** in situations where it would be unwelcome:
 
-- **Non-interactive runs** – if stderr isn't attached to a terminal (pipes, redirects, scripts), nothing is printed.
+- **Non-interactive runs** – if stdout or stderr isn't attached to a terminal (pipes, redirects, scripts, or a shell that loads `esdm completion` at startup), nothing is printed.
 - **CI environments** – if the `CI` environment variable is set, the check doesn't run. Most CI providers set this automatically.
 - **Development builds** – if you're running an unreleased build from source, no comparison is possible and the check skips.
 

@@ -26,6 +26,10 @@ func Render(g *Glossary) string {
 			b.WriteString(term.Definition)
 			b.WriteString("\n")
 
+			if term.MissingTranslation != "" {
+				fmt.Fprintf(&b, "\n_No translation into %s._\n", term.MissingTranslation)
+			}
+
 			for _, avoid := range term.Avoid {
 				fmt.Fprintf(&b, "\n_Avoid the term %q._", avoid.Term)
 				if avoid.Reason != "" {

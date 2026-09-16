@@ -18,11 +18,16 @@ type Avoid struct {
 }
 
 // Term is a single glossary entry: the term, its definition,
-// and any discouraged alternatives.
+// and any discouraged alternatives. When the glossary was
+// built for a language the term has no translation into,
+// MissingTranslation carries that language and the entry
+// falls back to the primary term, so the gap shows instead of
+// the term silently disappearing.
 type Term struct {
-	Term       string
-	Definition string
-	Avoid      []Avoid
+	Term               string
+	Definition         string
+	Avoid              []Avoid
+	MissingTranslation string
 }
 
 // Section groups the glossary entries of one bounded
@@ -46,7 +51,15 @@ type Glossary struct {
 // a domain; a two-segment path selects a single bounded
 // context. An unknown or too-deep path segment is rejected
 // as invalid input.
-func Build(m *model.Model, p modelpath.Path) (*Glossary, error) {
+//
+// language selects the language to render. The empty string
+// renders every bounded context in its own language. A
+// language tag renders a bounded context whose language it
+// is as is, and every other one through its translations
+// into that language; a term without such a translation is
+// kept in its primary form and marked, so a reader sees the
+// gap instead of missing the term.
+func Build(m *model.Model, p modelpath.Path, language string) (*Glossary, error) {
 	boundedContexts, err := selectBoundedContexts(m, p.Segments)
 	if err != nil {
 		return nil, err
@@ -54,7 +67,7 @@ func Build(m *model.Model, p modelpath.Path) (*Glossary, error) {
 
 	g := &Glossary{}
 	for _, boundedContext := range boundedContexts {
-		terms := collectTerms(boundedContext.UbiquitousLanguage())
+		terms := collectTerms(boundedContext, language)
 		if len(terms) == 0 {
 			continue
 		}
@@ -67,35 +80,39 @@ func Build(m *model.Model, p modelpath.Path) (*Glossary, error) {
 	return g, nil
 }
 
-// collectTerms turns the ubiquitousLanguage sequence node
-// into the sorted, typed term list. Entries missing a term
-// or definition are skipped defensively, even though the
-// schema requires both.
-func collectTerms(ubiquitousLanguage ast.Node) []Term {
+// collectTerms turns a bounded context's ubiquitous language
+// into the sorted, typed term list, in the requested language
+// where that differs from the context's own. Entries missing
+// a term or definition are skipped defensively, even though
+// the schema requires both.
+func collectTerms(boundedContext model.BoundedContextView, language string) []Term {
+	ownLanguage, _ := boundedContext.Language().Text()
+	shouldTranslate := language != "" && language != ownLanguage
+
 	var terms []Term
-	for _, entry := range ubiquitousLanguage.Seq() {
-		term := strings.TrimSpace(textOf(entry, "term"))
-		definition := strings.TrimSpace(textOf(entry, "definition"))
+	for _, entry := range boundedContext.UbiquitousLanguage().Seq() {
+		source := entry
+		var missingTranslation string
+		if shouldTranslate {
+			translation, found := findTranslation(entry, language)
+			if found {
+				source = translation
+			} else {
+				missingTranslation = language
+			}
+		}
+
+		term := strings.TrimSpace(textOf(source, "term"))
+		definition := strings.TrimSpace(textOf(source, "definition"))
 		if term == "" || definition == "" {
 			continue
 		}
 
-		var avoid []Avoid
-		for _, a := range entry.Field("avoid").Seq() {
-			avoidTerm := strings.TrimSpace(textOf(a, "term"))
-			if avoidTerm == "" {
-				continue
-			}
-			avoid = append(avoid, Avoid{
-				Term:   avoidTerm,
-				Reason: strings.TrimSpace(textOf(a, "reason")),
-			})
-		}
-
 		terms = append(terms, Term{
-			Term:       term,
-			Definition: definition,
-			Avoid:      avoid,
+			Term:               term,
+			Definition:         definition,
+			Avoid:              collectAvoid(source),
+			MissingTranslation: missingTranslation,
 		})
 	}
 
@@ -103,6 +120,34 @@ func collectTerms(ubiquitousLanguage ast.Node) []Term {
 		return terms[i].Term < terms[j].Term
 	})
 	return terms
+}
+
+// findTranslation returns the entry's translation into the
+// given language, if it has one.
+func findTranslation(entry ast.Node, language string) (ast.Node, bool) {
+	for _, translation := range entry.Field("translations").Seq() {
+		if textOf(translation, "language") == language {
+			return translation, true
+		}
+	}
+	return ast.Node{}, false
+}
+
+// collectAvoid reads the avoid list of a term or of one of
+// its translations; both share the same shape.
+func collectAvoid(source ast.Node) []Avoid {
+	var avoid []Avoid
+	for _, a := range source.Field("avoid").Seq() {
+		avoidTerm := strings.TrimSpace(textOf(a, "term"))
+		if avoidTerm == "" {
+			continue
+		}
+		avoid = append(avoid, Avoid{
+			Term:   avoidTerm,
+			Reason: strings.TrimSpace(textOf(a, "reason")),
+		})
+	}
+	return avoid
 }
 
 // textOf reads a scalar string field, returning "" when the
@@ -124,7 +169,7 @@ func selectBoundedContexts(m *model.Model, segments []string) ([]model.BoundedCo
 
 	domain := segments[0]
 	if !domainExists(m, domain) {
-		return nil, fmt.Errorf("no entity %q under model root", domain)
+		return nil, fmt.Errorf("no element %q under model root", domain)
 	}
 
 	inDomain := sortedBoundedContexts(boundedContextsInDomain(m, domain))
@@ -142,11 +187,11 @@ func selectBoundedContexts(m *model.Model, segments []string) ([]model.BoundedCo
 		}
 	}
 	if match == nil {
-		return nil, fmt.Errorf("no entity %q under %q", boundedContextName, domain)
+		return nil, fmt.Errorf("no element %q under %q", boundedContextName, domain)
 	}
 
 	if len(segments) > 2 {
-		return nil, fmt.Errorf("no entity %q under %q", segments[2], strings.Join(segments[:2], "/"))
+		return nil, fmt.Errorf("no element %q under %q", segments[2], strings.Join(segments[:2], "/"))
 	}
 	return []model.BoundedContextView{*match}, nil
 }

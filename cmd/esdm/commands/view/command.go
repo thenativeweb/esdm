@@ -55,11 +55,18 @@ var Command = &cobra.Command{
 			return fmt.Errorf("the resolver could not produce a model for %q; run `esdm lint` for diagnostics", directory)
 		}
 
-		root, err := BuildTree(m, path, withDetails)
+		// Annotate the complete tree before narrowing it.
+		// The annotator falls back to the nearest node above
+		// a diagnostic's line when no node matches exactly;
+		// on an already narrowed tree that fallback would pin
+		// a diagnostic from outside the subtree onto whatever
+		// node inside it happens to come last.
+		root := BuildTree(m, withDetails)
+		Annotate(root, diagnostics)
+		root, err = Narrow(root, path)
 		if err != nil {
 			return err
 		}
-		Annotate(root, diagnostics)
 
 		out := command.OutOrStdout()
 		shouldUseColor, err := cmdutils.ResolveColor(colorMode, out)

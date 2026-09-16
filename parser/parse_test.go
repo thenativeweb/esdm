@@ -351,3 +351,142 @@ name: whatever
 		assert.Positive(t, typeMismatch.Location.Column)
 	})
 }
+
+// boundedContextWithTerminology is a bounded context whose
+// ubiquitous language is written in English and carries one
+// German translation, including a rejected alternative for
+// that translation.
+const boundedContextWithTerminology = `apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: billing
+scope:
+  domain: commerce
+language: en
+ubiquitousLanguage:
+  - term: Invoice
+    definition: A request for payment issued to a customer.
+    avoid:
+      - term: Bill
+        reason: Colloquial; conflicts with the accounting sense.
+    translations:
+      - language: de
+        term: Rechnung
+        definition: Eine an den Kunden gerichtete Zahlungsaufforderung.
+        avoid:
+          - term: Faktura
+            reason: Austrian usage, not spoken in this team.
+`
+
+func TestBoundedContextLanguage(t *testing.T) {
+	t.Run("accepts a ubiquitous language with a declared language and translations", func(t *testing.T) {
+		path := writeTempFile(t, boundedContextWithTerminology)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("requires language once a bounded context declares a ubiquitous language", func(t *testing.T) {
+		document := strings.Replace(boundedContextWithTerminology, "language: en\n", "", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.True(t, hasRuleID(diagnostics, "esdm/structure/missing-required-field"),
+			"expected missing-required-field in %+v", diagnostics)
+	})
+
+	t.Run("does not require language on a bounded context without ubiquitous language", func(t *testing.T) {
+		document := `apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: billing
+scope:
+  domain: commerce
+`
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("rejects a language that is not a BCP 47 tag", func(t *testing.T) {
+		document := strings.Replace(boundedContextWithTerminology, "language: en\n", "language: English\n", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.True(t, hasRuleID(diagnostics, "esdm/structure/constraint-violation"),
+			"expected constraint-violation in %+v", diagnostics)
+	})
+
+	t.Run("requires a definition on every translation", func(t *testing.T) {
+		document := strings.Replace(boundedContextWithTerminology, "        definition: Eine an den Kunden gerichtete Zahlungsaufforderung.\n", "", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.True(t, hasRuleID(diagnostics, "esdm/structure/missing-required-field"),
+			"expected missing-required-field in %+v", diagnostics)
+	})
+}
+
+const customerSupplierWithTerms = `apiVersion: schema.esdm.io/core/v1
+kind: context-mapping
+name: sales-billing
+type: customer-supplier
+customer:
+  domain: commerce
+  boundedContext: sales
+supplier:
+  domain: commerce
+  boundedContext: billing
+terms:
+  - customer: Customer
+    supplier: Account
+`
+
+func TestContextMappingTerms(t *testing.T) {
+	t.Run("accepts term pairs named after the roles of an asymmetric mapping", func(t *testing.T) {
+		path := writeTempFile(t, customerSupplierWithTerms)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("requires both roles on every term pair", func(t *testing.T) {
+		document := strings.Replace(customerSupplierWithTerms, "    supplier: Account\n", "", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.True(t, hasRuleID(diagnostics, "esdm/structure/missing-required-field"),
+			"expected missing-required-field in %+v", diagnostics)
+	})
+
+	t.Run("rejects term pairs on a symmetric mapping", func(t *testing.T) {
+		document := `apiVersion: schema.esdm.io/core/v1
+kind: context-mapping
+name: sales-billing
+type: shared-kernel
+participants:
+  - domain: commerce
+    boundedContext: sales
+  - domain: commerce
+    boundedContext: billing
+terms:
+  - customer: Customer
+    supplier: Account
+`
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		require.NotEmpty(t, diagnostics)
+	})
+}

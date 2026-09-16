@@ -4,7 +4,7 @@
 # validated by `esdm lint` in the QA workflow before merge to main. This image
 # build trusts main to be green and does not re-run the lint.
 
-FROM squidfunk/mkdocs-material:9.7.6 AS build-documentation
+FROM squidfunk/mkdocs-material:9.7.7 AS build-documentation
 
 RUN pip install "mkdocs-material[imaging]"
 
