@@ -2,6 +2,7 @@ package docgen_test
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -480,7 +481,9 @@ func TestDocumentationCommand(t *testing.T) {
 
 		_, err := runDocumentationCommand(t, shopYAML, []string{"--output", out})
 		require.Error(t, err)
-		assert.Equal(t, `output directory "`+out+`" is not empty; use --force to clear it first`, err.Error())
+		// %q mirrors the command's own formatting, which escapes
+		// the backslashes of a Windows path.
+		assert.Equal(t, fmt.Sprintf("output directory %q is not empty; use --force to clear it first", out), err.Error())
 
 		_, err = runDocumentationCommand(t, shopYAML, []string{"--output", out, "--force"})
 		require.NoError(t, err)
