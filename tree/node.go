@@ -1,4 +1,6 @@
-package view
+package tree
+
+import "github.com/thenativeweb/esdm/model"
 
 // Node is one entry in the render tree the view command
 // produces. Each node carries the data needed by the
@@ -24,6 +26,14 @@ type Node struct {
 	// `name` field. The annotator matches diagnostic
 	// locations against it to attach the right severity.
 	Location SourceLocation
+
+	// Document is the ESDM document the node stands for.
+	// Renderers read whatever they need from it - the
+	// description, a bounded context's terminology, a
+	// command's publishes - instead of the tree copying
+	// those fields into the node. The synthetic root has
+	// no document.
+	Document model.DocumentViewBase
 }
 
 // SourceLocation captures where a node was defined in

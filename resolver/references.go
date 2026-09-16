@@ -587,17 +587,6 @@ func checkMappingEndpoint(m *model.Model, endpoint ast.Node) []diag.Diagnostic {
 	}
 }
 
-// mappingRoles lists, per asymmetric mapping type, the two
-// role fields whose endpoints a term pair refers to. The
-// symmetric types have no roles and no term pairs.
-var mappingRoles = map[string][2]string{
-	"customer-supplier":     {"customer", "supplier"},
-	"conformist":            {"conformist", "upstream"},
-	"anti-corruption-layer": {"downstream", "upstream"},
-	"open-host-service":     {"host", "consumer"},
-	"published-language":    {"publisher", "consumer"},
-}
-
 // checkMappingTerms verifies the term pairs of a context
 // mapping: both endpoints must be bounded contexts, since an
 // external system has no ubiquitous language, and each term
@@ -611,7 +600,7 @@ func checkMappingTerms(m *model.Model, mapping model.ContextMappingView) []diag.
 		return nil
 	}
 	mappingType, _ := mapping.Type().Text()
-	roles, ok := mappingRoles[mappingType]
+	roles, ok := model.MappingRoles(mappingType)
 	if !ok {
 		return nil
 	}

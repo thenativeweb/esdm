@@ -7,17 +7,18 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/thenativeweb/esdm/cmd/esdm/commands/view"
+	"github.com/thenativeweb/esdm/tree"
 )
 
 func TestRender(t *testing.T) {
 	t.Run("renders a single node", func(t *testing.T) {
-		root := &view.Node{Kind: "domain", Name: "sample"}
+		root := &tree.Node{Kind: "domain", Name: "sample"}
 		out := view.Render(root, view.RenderOptions{})
 		assert.Equal(t, "domain sample\n", out)
 	})
 
 	t.Run("renders the synthetic model root transparently", func(t *testing.T) {
-		root := &view.Node{Kind: "model", Children: []*view.Node{
+		root := &tree.Node{Kind: "model", Children: []*tree.Node{
 			{Kind: "domain", Name: "sample"},
 		}}
 		out := view.Render(root, view.RenderOptions{})
@@ -25,7 +26,7 @@ func TestRender(t *testing.T) {
 	})
 
 	t.Run("renders children with box-drawing connectors", func(t *testing.T) {
-		root := &view.Node{Kind: "domain", Name: "sample", Children: []*view.Node{
+		root := &tree.Node{Kind: "domain", Name: "sample", Children: []*tree.Node{
 			{Kind: "bounded-context", Name: "context-one"},
 			{Kind: "bounded-context", Name: "context-two"},
 		}}
@@ -40,11 +41,11 @@ func TestRender(t *testing.T) {
 	})
 
 	t.Run("renders nested children with continuation pipes", func(t *testing.T) {
-		root := &view.Node{Kind: "domain", Name: "sample", Children: []*view.Node{
-			{Kind: "bounded-context", Name: "context-one", Children: []*view.Node{
+		root := &tree.Node{Kind: "domain", Name: "sample", Children: []*tree.Node{
+			{Kind: "bounded-context", Name: "context-one", Children: []*tree.Node{
 				{Kind: "aggregate", Name: "widget"},
 			}},
-			{Kind: "bounded-context", Name: "context-two", Children: []*view.Node{
+			{Kind: "bounded-context", Name: "context-two", Children: []*tree.Node{
 				{Kind: "aggregate", Name: "gadget"},
 			}},
 		}}
@@ -61,7 +62,7 @@ func TestRender(t *testing.T) {
 	})
 
 	t.Run("renders tags and stats inline on the header", func(t *testing.T) {
-		root := &view.Node{
+		root := &tree.Node{
 			Kind:  "subdomain",
 			Name:  "primary",
 			Tags:  []string{"core"},
@@ -72,31 +73,31 @@ func TestRender(t *testing.T) {
 	})
 
 	t.Run("renders severity glyph in plain mode", func(t *testing.T) {
-		root := &view.Node{Kind: "aggregate", Name: "widget", Severity: view.SeverityError}
+		root := &tree.Node{Kind: "aggregate", Name: "widget", Severity: tree.SeverityError}
 		out := view.Render(root, view.RenderOptions{})
 		assert.Contains(t, out, "✗")
 	})
 
 	t.Run("renders severity glyph with ANSI when colors are enabled", func(t *testing.T) {
-		root := &view.Node{Kind: "aggregate", Name: "widget", Severity: view.SeverityWarning}
+		root := &tree.Node{Kind: "aggregate", Name: "widget", Severity: tree.SeverityWarning}
 		out := view.Render(root, view.RenderOptions{Colors: true})
 		assert.Contains(t, out, "\x1b[33m⚠\x1b[0m")
 	})
 
 	t.Run("renders the name in bold when colors are enabled", func(t *testing.T) {
-		root := &view.Node{Kind: "aggregate", Name: "widget"}
+		root := &tree.Node{Kind: "aggregate", Name: "widget"}
 		out := view.Render(root, view.RenderOptions{Colors: true})
 		assert.Contains(t, out, "\x1b[1mwidget\x1b[0m")
 	})
 
 	t.Run("renders the kind in cyan when colors are enabled", func(t *testing.T) {
-		root := &view.Node{Kind: "aggregate", Name: "widget"}
+		root := &tree.Node{Kind: "aggregate", Name: "widget"}
 		out := view.Render(root, view.RenderOptions{Colors: true})
 		assert.Contains(t, out, "\x1b[36maggregate\x1b[0m")
 	})
 
 	t.Run("renders tags and stats dim when colors are enabled", func(t *testing.T) {
-		root := &view.Node{
+		root := &tree.Node{
 			Kind:  "subdomain",
 			Name:  "primary",
 			Tags:  []string{"core"},
@@ -108,7 +109,7 @@ func TestRender(t *testing.T) {
 	})
 
 	t.Run("does not emit ANSI bold, dim or cyan in plain mode", func(t *testing.T) {
-		root := &view.Node{Kind: "aggregate", Name: "widget", Tags: []string{"alpha"}, Stats: []string{"1 thing"}}
+		root := &tree.Node{Kind: "aggregate", Name: "widget", Tags: []string{"alpha"}, Stats: []string{"1 thing"}}
 		out := view.Render(root, view.RenderOptions{})
 		assert.NotContains(t, out, "\x1b[1m")
 		assert.NotContains(t, out, "\x1b[2m")
@@ -116,13 +117,13 @@ func TestRender(t *testing.T) {
 	})
 
 	t.Run("renders detail lines dim when colors are enabled", func(t *testing.T) {
-		root := &view.Node{Kind: "aggregate", Name: "widget", Lines: []string{"identifiedBy: generated/uuid"}}
+		root := &tree.Node{Kind: "aggregate", Name: "widget", Lines: []string{"identifiedBy: generated/uuid"}}
 		out := view.Render(root, view.RenderOptions{Colors: true, ShowDetails: true})
 		assert.Contains(t, out, "\x1b[2midentifiedBy: generated/uuid\x1b[0m")
 	})
 
 	t.Run("emits per-node lines only when ShowDetails is true", func(t *testing.T) {
-		root := &view.Node{Kind: "aggregate", Name: "widget", Lines: []string{"identifiedBy: generated/uuid"}}
+		root := &tree.Node{Kind: "aggregate", Name: "widget", Lines: []string{"identifiedBy: generated/uuid"}}
 		without := view.Render(root, view.RenderOptions{})
 		assert.NotContains(t, without, "identifiedBy")
 		with := view.Render(root, view.RenderOptions{ShowDetails: true})

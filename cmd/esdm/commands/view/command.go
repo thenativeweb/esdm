@@ -9,6 +9,7 @@ import (
 	"github.com/thenativeweb/esdm/cmd/cmdutils"
 	"github.com/thenativeweb/esdm/modelpath"
 	"github.com/thenativeweb/esdm/runner"
+	"github.com/thenativeweb/esdm/tree"
 )
 
 var (
@@ -61,9 +62,9 @@ var Command = &cobra.Command{
 		// on an already narrowed tree that fallback would pin
 		// a diagnostic from outside the subtree onto whatever
 		// node inside it happens to come last.
-		root := BuildTree(m, withDetails)
+		root := tree.Build(m, withDetails)
 		Annotate(root, diagnostics)
-		root, err = Narrow(root, path)
+		root, err = tree.Narrow(root, path)
 		if err != nil {
 			return err
 		}

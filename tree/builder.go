@@ -1,4 +1,4 @@
-package view
+package tree
 
 import (
 	"fmt"
@@ -8,11 +8,11 @@ import (
 	"github.com/thenativeweb/esdm/modelpath"
 )
 
-// BuildTree returns the render tree for the whole model:
-// a synthetic root with one child per domain. Narrowing to
-// a path is a separate step, see Narrow, so that callers
-// can annotate the complete tree first.
-func BuildTree(m *model.Model, withDetails bool) *Node {
+// Build returns the tree for the whole model: a synthetic
+// root with one child per domain. Narrowing to a path is a
+// separate step, see Narrow, so that callers can annotate
+// the complete tree first.
+func Build(m *model.Model, withDetails bool) *Node {
 	return buildAllDomains(m, withDetails)
 }
 
@@ -46,6 +46,7 @@ func buildDomain(m *model.Model, d model.DomainView, withDetails bool) *Node {
 		Kind:     "domain",
 		Name:     name,
 		Location: nameLocation(d),
+		Document: d.DocumentViewBase,
 	}
 
 	subdomainCount := 0
@@ -131,6 +132,7 @@ func buildSubdomain(s model.SubdomainView, withDetails bool) *Node {
 		Name:     name,
 		Tags:     []string{subType},
 		Location: nameLocation(s),
+		Document: s.DocumentViewBase,
 	}
 	var bcs []string
 	for _, item := range s.BoundedContexts().Seq() {
@@ -157,6 +159,7 @@ func buildBoundedContext(m *model.Model, boundedContext model.BoundedContextView
 		Kind:     "bounded-context",
 		Name:     name,
 		Location: nameLocation(boundedContext),
+		Document: boundedContext.DocumentViewBase,
 	}
 
 	aggregateCount := 0
@@ -267,6 +270,7 @@ func buildAggregate(m *model.Model, aggregate model.AggregateView, withDetails b
 		Kind:     "aggregate",
 		Name:     name,
 		Location: nameLocation(aggregate),
+		Document: aggregate.DocumentViewBase,
 	}
 
 	cmdCount := 0
@@ -333,6 +337,7 @@ func buildDCB(m *model.Model, dcb model.DynamicConsistencyBoundaryView, withDeta
 		Kind:     "dynamic-consistency-boundary",
 		Name:     name,
 		Location: nameLocation(dcb),
+		Document: dcb.DocumentViewBase,
 	}
 
 	cmdCount := 0
@@ -373,6 +378,7 @@ func buildCommand(cmd model.CommandView, withDetails bool) *Node {
 		Kind:     "command",
 		Name:     name,
 		Location: nameLocation(cmd),
+		Document: cmd.DocumentViewBase,
 	}
 
 	var publishes []string
@@ -415,6 +421,7 @@ func buildEvent(m *model.Model, event model.EventView, withDetails bool) *Node {
 		Kind:     "event",
 		Name:     name,
 		Location: nameLocation(event),
+		Document: event.DocumentViewBase,
 	}
 	if publishers := filterCommandsPublishingEvent(m, event); len(publishers) > 0 {
 		n.Stats = append(n.Stats, "← "+joinComma(publishers))
@@ -437,6 +444,7 @@ func buildReadModel(m *model.Model, readModel model.ReadModelView, withDetails b
 		Kind:     "read-model",
 		Name:     name,
 		Location: nameLocation(readModel),
+		Document: readModel.DocumentViewBase,
 	}
 	projections := readModel.Projections().Seq()
 	if len(projections) > 0 {
@@ -476,6 +484,7 @@ func buildQuery(query model.QueryView, withDetails bool) *Node {
 		Kind:     "query",
 		Name:     name,
 		Location: nameLocation(query),
+		Document: query.DocumentViewBase,
 	}
 	if rmName, ok := query.ReadModel().Text(); ok {
 		n.Stats = append(n.Stats, "→ "+rmName)
@@ -505,6 +514,7 @@ func buildEntity(entity model.EntityView, withDetails bool) *Node {
 		Kind:     "entity",
 		Name:     name,
 		Location: nameLocation(entity),
+		Document: entity.DocumentViewBase,
 	}
 	invariantCount := len(entity.Invariants().Seq())
 	if s := plural(invariantCount, "inv"); s != "" {
@@ -544,6 +554,7 @@ func buildValueObject(valueObject model.ValueObjectView, withDetails bool) *Node
 		Kind:     "value-object",
 		Name:     name,
 		Location: nameLocation(valueObject),
+		Document: valueObject.DocumentViewBase,
 	}
 	invariantCount := len(valueObject.Invariants().Seq())
 	if s := plural(invariantCount, "inv"); s != "" {
@@ -569,6 +580,7 @@ func buildDomainService(domainService model.DomainServiceView, withDetails bool)
 		Kind:     "domain-service",
 		Name:     name,
 		Location: nameLocation(domainService),
+		Document: domainService.DocumentViewBase,
 	}
 	functionCount := len(domainService.Functions().Seq())
 	if s := plural(functionCount, "fn"); s != "" {
@@ -591,6 +603,7 @@ func buildActor(a model.ActorView, withDetails bool) *Node {
 		Name:     name,
 		Tags:     []string{atype},
 		Location: nameLocation(a),
+		Document: a.DocumentViewBase,
 	}
 	if withDetails {
 		for _, r := range a.Responsibilities().Seq() {
@@ -609,6 +622,7 @@ func buildProcessManager(m *model.Model, processManager model.ProcessManagerView
 		Kind:     "process-manager",
 		Name:     name,
 		Location: nameLocation(processManager),
+		Document: processManager.DocumentViewBase,
 	}
 	if deliveryGuarantee, ok := processManager.DeliveryGuarantee().Text(); ok {
 		n.Stats = append(n.Stats, deliveryGuarantee)
@@ -642,6 +656,7 @@ func buildEventHandler(eventHandler model.EventHandlerView, withDetails bool) *N
 		Kind:     "event-handler",
 		Name:     name,
 		Location: nameLocation(eventHandler),
+		Document: eventHandler.DocumentViewBase,
 	}
 	if deliveryGuarantee, ok := eventHandler.DeliveryGuarantee().Text(); ok {
 		n.Stats = append(n.Stats, deliveryGuarantee)
@@ -661,6 +676,7 @@ func buildPolicy(p model.PolicyView, withDetails bool) *Node {
 		Kind:     "policy",
 		Name:     name,
 		Location: nameLocation(p),
+		Document: p.DocumentViewBase,
 	}
 	if deliveryGuarantee, ok := p.DeliveryGuarantee().Text(); ok {
 		n.Stats = append(n.Stats, deliveryGuarantee)
@@ -674,6 +690,7 @@ func buildExternalSystem(externalSystem model.ExternalSystemView, withDetails bo
 		Kind:     "external-system",
 		Name:     name,
 		Location: nameLocation(externalSystem),
+		Document: externalSystem.DocumentViewBase,
 	}
 	if d, ok := externalSystem.Direction().Text(); ok {
 		n.Stats = append(n.Stats, d)
@@ -692,6 +709,7 @@ func buildContextMapping(contextMapping model.ContextMappingView, withDetails bo
 		Name:     name,
 		Tags:     []string{cmType},
 		Location: nameLocation(contextMapping),
+		Document: contextMapping.DocumentViewBase,
 	}
 	return n
 }
@@ -706,6 +724,7 @@ func buildFeature(feature model.FeatureView, withDetails bool) *Node {
 		Kind:     "feature",
 		Name:     name,
 		Location: nameLocation(feature),
+		Document: feature.DocumentViewBase,
 	}
 
 	scenarios := feature.Scenarios().Seq()
@@ -736,6 +755,7 @@ func buildStory(story model.DomainStoryView, withDetails bool) *Node {
 		Kind:     "domain-story",
 		Name:     name,
 		Location: nameLocation(story),
+		Document: story.DocumentViewBase,
 	}
 	if pointInTime, ok := story.PointInTime().Text(); ok {
 		n.Tags = append(n.Tags, pointInTime)
