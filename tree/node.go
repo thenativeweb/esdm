@@ -1,4 +1,4 @@
-package view
+package tree
 
 // Node is one entry in the render tree the view command
 // produces. Each node carries the data needed by the

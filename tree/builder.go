@@ -1,4 +1,4 @@
-package view
+package tree
 
 import (
 	"fmt"
@@ -8,11 +8,11 @@ import (
 	"github.com/thenativeweb/esdm/modelpath"
 )
 
-// BuildTree returns the render tree for the whole model:
-// a synthetic root with one child per domain. Narrowing to
-// a path is a separate step, see Narrow, so that callers
-// can annotate the complete tree first.
-func BuildTree(m *model.Model, withDetails bool) *Node {
+// Build returns the tree for the whole model: a synthetic
+// root with one child per domain. Narrowing to a path is a
+// separate step, see Narrow, so that callers can annotate
+// the complete tree first.
+func Build(m *model.Model, withDetails bool) *Node {
 	return buildAllDomains(m, withDetails)
 }
 

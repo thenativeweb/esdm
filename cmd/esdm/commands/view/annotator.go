@@ -2,6 +2,7 @@ package view
 
 import (
 	"github.com/thenativeweb/esdm/diag"
+	"github.com/thenativeweb/esdm/tree"
 )
 
 // Annotate walks the tree and attaches the matching
@@ -16,7 +17,7 @@ import (
 // node carries at least the worst severity of any
 // descendant. This lets the user spot a problem at a
 // high level and zoom in.
-func Annotate(root *Node, diagnostics []diag.Diagnostic) {
+func Annotate(root *tree.Node, diagnostics []diag.Diagnostic) {
 	if root == nil {
 		return
 	}
@@ -36,13 +37,13 @@ func Annotate(root *Node, diagnostics []diag.Diagnostic) {
 // match is found, the deepest node in the same file
 // whose name is at-or-above the diagnostic's line is
 // chosen - the AST anchor of the surrounding entity.
-func pickTarget(root *Node, loc diag.Location) *Node {
-	var exact *Node
-	var bestFallback *Node
+func pickTarget(root *tree.Node, loc diag.Location) *tree.Node {
+	var exact *tree.Node
+	var bestFallback *tree.Node
 	bestLine := -1
 
-	visit := func(n *Node) {}
-	visit = func(n *Node) {
+	visit := func(n *tree.Node) {}
+	visit = func(n *tree.Node) {
 		if n.Location.File == loc.File {
 			if n.Location.Line == loc.Line && n.Location.Column == loc.Column {
 				exact = n
@@ -65,7 +66,7 @@ func pickTarget(root *Node, loc diag.Location) *Node {
 
 // raise lifts a node's severity to at least the given
 // severity - warning never overrides error.
-func raise(n *Node, s Severity) {
+func raise(n *tree.Node, s tree.Severity) {
 	if priority(s) > priority(n.Severity) {
 		n.Severity = s
 	}
@@ -73,7 +74,7 @@ func raise(n *Node, s Severity) {
 
 // bubble propagates the worst severity of a subtree's
 // descendants up to its root, recursively.
-func bubble(n *Node) Severity {
+func bubble(n *tree.Node) tree.Severity {
 	worst := n.Severity
 	for _, c := range n.Children {
 		s := bubble(c)
@@ -85,24 +86,24 @@ func bubble(n *Node) Severity {
 	return worst
 }
 
-func priority(s Severity) int {
+func priority(s tree.Severity) int {
 	switch s {
-	case SeverityError:
+	case tree.SeverityError:
 		return 2
-	case SeverityWarning:
+	case tree.SeverityWarning:
 		return 1
 	default:
 		return 0
 	}
 }
 
-func fromDiagSeverity(s diag.Severity) Severity {
+func fromDiagSeverity(s diag.Severity) tree.Severity {
 	switch s {
 	case diag.SeverityError:
-		return SeverityError
+		return tree.SeverityError
 	case diag.SeverityWarning:
-		return SeverityWarning
+		return tree.SeverityWarning
 	default:
-		return SeverityNone
+		return tree.SeverityNone
 	}
 }

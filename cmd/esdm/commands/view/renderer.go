@@ -2,6 +2,8 @@ package view
 
 import (
 	"strings"
+
+	"github.com/thenativeweb/esdm/tree"
 )
 
 // RenderOptions controls how the renderer styles a tree.
@@ -18,7 +20,7 @@ type RenderOptions struct {
 // (Kind "model") is rendered transparently - its
 // children become the top-level lines so the user sees
 // real entities at the top.
-func Render(root *Node, opts RenderOptions) string {
+func Render(root *tree.Node, opts RenderOptions) string {
 	if root == nil {
 		return ""
 	}
@@ -39,7 +41,7 @@ func Render(root *Node, opts RenderOptions) string {
 // any tree connectors above); `childPrefix` is the
 // indentation to use for everything that descends from
 // the node (lines and child nodes).
-func renderNode(b *strings.Builder, n *Node, prefix, childPrefix string, opts RenderOptions) {
+func renderNode(b *strings.Builder, n *tree.Node, prefix, childPrefix string, opts RenderOptions) {
 	b.WriteString(prefix)
 	b.WriteString(formatHeader(n, opts))
 	b.WriteString("\n")
@@ -72,10 +74,10 @@ func renderNode(b *strings.Builder, n *Node, prefix, childPrefix string, opts Re
 // top (bold), the *kind* in cyan as the containment
 // anchor on its own color spur, and the inline tags
 // plus the right-side stats below them in dim text.
-// Severity glyphs pick up their color from the same
+// tree.Severity glyphs pick up their color from the same
 // opts.Colors flag and stay outside the dim/bold/cyan
 // scheme so their red/yellow signal is unaffected.
-func formatHeader(n *Node, opts RenderOptions) string {
+func formatHeader(n *tree.Node, opts RenderOptions) string {
 	var b strings.Builder
 	b.WriteString(applyKindColor(n.Kind, opts.Colors))
 	b.WriteString(" ")
@@ -138,14 +140,14 @@ func applyKindColor(text string, isColorEnabled bool) string {
 // the glyph itself is always present so non-colored
 // output (pipes, --color never) still surfaces the
 // severity.
-func severityGlyph(s Severity, isColorEnabled bool) string {
+func severityGlyph(s tree.Severity, isColorEnabled bool) string {
 	switch s {
-	case SeverityError:
+	case tree.SeverityError:
 		if isColorEnabled {
 			return "\x1b[31m✗\x1b[0m"
 		}
 		return "✗"
-	case SeverityWarning:
+	case tree.SeverityWarning:
 		if isColorEnabled {
 			return "\x1b[33m⚠\x1b[0m"
 		}
