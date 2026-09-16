@@ -16,6 +16,7 @@ kind: bounded-context
 name: cataloging
 scope:
   domain: library
+language: en
 ubiquitousLanguage:
   - term: Acquisition
     definition: The process of adding a book to the catalog, whether bought or donated.

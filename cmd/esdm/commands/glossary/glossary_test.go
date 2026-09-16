@@ -24,6 +24,7 @@ kind: bounded-context
 name: ordering
 scope:
   domain: shop
+language: en
 ubiquitousLanguage:
   - term: Order
     definition: A customer's request to purchase one or more products.
@@ -39,6 +40,7 @@ kind: bounded-context
 name: billing
 scope:
   domain: shop
+language: en
 ubiquitousLanguage:
   - term: Invoice
     definition: A demand for payment for an order.
@@ -58,6 +60,7 @@ kind: bounded-context
 name: inventory
 scope:
   domain: warehouse
+language: en
 ubiquitousLanguage:
   - term: SKU
     definition: A stock keeping unit.
