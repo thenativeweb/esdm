@@ -49,7 +49,7 @@ There is a pleasant consequence. Every ESDM document already states its kind, it
 
 Keeping the host out of the reference is deliberate. **A reference outlives any one place the model is published** – a specification written today should still point at the right element after the documentation moves to a new domain, or is generated fresh into a different repository. The host is not part of the element's identity, so it is not part of the reference.
 
-That said, a reference is built so that a rendering of the model can turn it into a location. Its segments are the containment path, and a documentation tree rendered from the model – one page per element along that path – maps every reference to exactly one page by a fixed rule. Supply the base URL of such a rendering, and a tool resolves the reference to a link. The **[esdm documentation](https://github.com/thenativeweb/esdm/issues/5)** command that produces such a tree is in the works.
+That said, a reference is built so that a rendering of the model can turn it into a location. Its segments are the containment path, and a documentation tree rendered from the model – one page per element along that path – maps every reference to exactly one page by a fixed rule. Supply the base URL of such a rendering, and a tool resolves the reference to a link. **[esdm documentation](/getting-started/running-esdm-documentation.md)** produces such a tree: each segment's `kind=name` becomes a directory or file named `kind_name`, so `esdm:domain=library/bounded-context=catalog/aggregate=book` is the page `domain_library/bounded-context_catalog/aggregate_book/README.md`.
 
 ## What You Can Point At
 

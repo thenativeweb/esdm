@@ -18,6 +18,32 @@ esdm add-schema
 
 The command refuses to run if a `schemas/` directory already exists. Refreshing an existing one is the job of `esdm update-schema`; refusing here keeps the two paths cleanly separated and prevents an accidental overwrite of edited or pinned schema files.
 
+## `esdm documentation`
+
+### Invocation
+
+```shell
+esdm documentation [path] --output <directory> [flags]
+```
+
+### Anatomy
+
+`esdm documentation` renders an ESDM model as a tree of Markdown pages and writes it to the directory named by `-o` / `--output`, which is required and has no default. It renders the same containment tree as `esdm view`: one page per element, a container – Domain, Bounded Context, Aggregate, Dynamic Consistency Boundary, Process Manager, Read Model – as a directory with a `README.md` index, every other element as a `.md` file, and a root `README.md` listing the Domains and the Context Mappings. Directories and files are named after the segments of the element's reference, `kind_name`, with an underscore where the reference has an equals sign, so `esdm:domain=library/bounded-context=cataloging/aggregate=book` becomes `domain_library/bounded-context_cataloging/aggregate_book/README.md`. Context Mappings have no Domain and sit at the root.
+
+Each page states the element's name, kind, and reference, its stats line as `esdm view` shows it, its description, its details, and its children grouped by kind with relative links. Relationships are written out and linked rather than drawn: a Command publishes Events and is issued by Actors, an Event is published by Commands, a Query reads a Read Model, a Read Model projects Events. A Bounded Context renders its ubiquitous language with each term's translations, a Context Mapping its endpoints and term pairs. A link to an element outside the written tree falls back to the element's reference.
+
+The optional `[path]` argument narrows the output to a sub-region of the model, with the same syntax as `esdm view`: Domain, Bounded Context, consistency unit, separated by slashes. Pages keep their full paths. When several elements of different kinds share the name a segment names, every match is written.
+
+The directory holding the model is selected with `-d` / `--directory`, defaulting to the current working directory. An output directory that exists and is not empty is refused; `--force` clears it before writing, so the tree always mirrors the model with no orphaned pages. Linter findings do not block the output; only an unresolvable model, an invalid path, or a non-empty output directory without `--force` is an error, and the exit code is non-zero only in those cases. The output is neutral Markdown without site configuration or theme.
+
+Typical invocations look like this:
+
+```shell
+esdm documentation --output docs
+esdm documentation --output docs <domain>/<bounded-context>
+esdm documentation --output docs --force
+```
+
 ## `esdm glossary`
 
 ### Invocation
