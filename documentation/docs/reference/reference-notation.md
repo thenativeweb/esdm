@@ -12,26 +12,36 @@ ESDM lets you split a model across as many `.esdm.yaml` files as you like, merge
 
 ## The Shape of a Reference
 
-A reference is a URI in the `esdm` scheme, followed by the path that locates the element inside its Domain:
+A reference is a URI in the `esdm` scheme. Its path walks the model's containment from the Domain inward, one segment per element, and **every segment names the element's kind and its name**, joined by an equals sign:
 
 ```text
-esdm:<domain>/<segment>/.../<name>
+esdm:<kind>=<name>/<kind>=<name>/.../<kind>=<name>
 ```
 
-The segments are the names of the elements that contain your target, from the Domain inward, ending with the target's own name. Every segment is a bare name, written exactly as it appears in the model – lowercase and kebab-case, matching the rules for the `name` field, with no slugging or escaping of any kind.
-
-Here is one element at each level of a model, addressed:
+The kinds are the values the `kind` field takes in the model – `domain`, `bounded-context`, `aggregate`, `command`, and so on. The names are written exactly as they appear in the model, lowercase and kebab-case, with no escaping of any kind. Here is one element at each level of a model, addressed:
 
 | Element | Reference |
 | --- | --- |
-| a Domain | `esdm:library` |
-| a Bounded Context | `esdm:library/catalog` |
-| a Policy | `esdm:library/notify-on-overdue` |
-| an Aggregate | `esdm:library/catalog/book` |
-| a Command | `esdm:library/catalog/book/register-book` |
-| an Event | `esdm:library/catalog/book/book-registered` |
+| a Domain | `esdm:domain=library` |
+| a Bounded Context | `esdm:domain=library/bounded-context=catalog` |
+| a Policy | `esdm:domain=library/policy=notify-on-overdue` |
+| an Aggregate | `esdm:domain=library/bounded-context=catalog/aggregate=book` |
+| a Command | `esdm:domain=library/bounded-context=catalog/aggregate=book/command=register` |
+| an Event | `esdm:domain=library/bounded-context=catalog/aggregate=book/event=registered` |
 
-The path follows the model's containment, so its length says where an element sits. An Aggregate's Event carries the Aggregate in its path; a free-standing Event – one published by a Command on a Dynamic Consistency Boundary rather than by an Aggregate – has no Aggregate to carry, so it is one segment shorter: `esdm:library/lending/loan-extended` against an Aggregate's `esdm:library/catalog/book/book-registered`.
+The Command is `register` and the Event is `registered`, not `register-book` and `book-registered`: names in the model are bare, and the Aggregate is already in the path. The **[Naming](/concepts/event.md#naming)** section of the Event concept explains that convention.
+
+The path follows the model's containment, so its length says where an element sits. A free-standing Event – one published by a Command on a Dynamic Consistency Boundary rather than by an Aggregate – has no Aggregate to carry, so it is one segment shorter: `esdm:domain=library/bounded-context=lending/event=loan-extended`. A **[Context Mapping](/concepts/context-mapping.md)** has no Domain at all, because its endpoints may straddle Domains, so its reference is a single segment: `esdm:context-mapping=catalog-to-lending`.
+
+Writing a parameter into a path segment as `key=value` is the convention the URI specification itself describes for segment parameters, so every URI parser accepts the form, and splitting at `/` and `=` recovers the pairs.
+
+## Why Every Segment Carries Its Kind
+
+A reference has to work for a reader as much as for a tool, and a reader who sees `book/register` does not know whether `register` is a Command, an Event, or a Feature. **The kind is part of what the reference says**, so it is written down – for the element you point at, and for every container above it.
+
+The containers need it as much as the target does. A Command sits inside an Aggregate or inside a Dynamic Consistency Boundary; naming the container's kind tells the reader which. And ESDM allows the same name to be used by different kinds at the same place, where that is the idiom rather than a mistake: an Aggregate and a Read Model both called `order` are one concept on the write and the read side, an Entity and an Actor both called `applicant` are the data and the role, a Subdomain and a Bounded Context both called `billing` are the classification and the context. A reference that carried only names would be ambiguous for every one of them. With the kind in each segment, `aggregate=order` and `read-model=order` are two references, as they should be. The one group of kinds that may *not* share a name – the domain types of a Bounded Context, which become the types of one code module – is described on the **[Bounded Context](/concepts/bounded-context.md#one-namespace-for-the-domain-types)** page and enforced by the linter.
+
+There is a pleasant consequence. Every ESDM document already states its kind, its name, and its `scope` – the Domain, the Bounded Context, the Aggregate it belongs to. **A reference is that document head, serialized**: the scope fields in order, each written as the kind it names, then the element's own kind and name. You can form a reference from any document without looking anything up, and a tool can check one against the model by walking exactly those fields.
 
 ## A Name, Not a Location
 
@@ -39,39 +49,25 @@ The path follows the model's containment, so its length says where an element si
 
 Keeping the host out of the reference is deliberate. **A reference outlives any one place the model is published** – a specification written today should still point at the right element after the documentation moves to a new domain, or is generated fresh into a different repository. The host is not part of the element's identity, so it is not part of the reference.
 
-That said, the reference is built so that a host turns it into a location. The path after `esdm:` is exactly the path an element occupies when the model is rendered as a documentation tree, one page per element along the containment hierarchy. Supply the base URL of such a rendering, and the reference resolves by concatenation:
-
-```text
-esdm:library/catalog/book/book-registered
-+ https://docs.example.com/
-= https://docs.example.com/library/catalog/book/book-registered
-```
-
-## One Name per Position
-
-The path carries no kind – it does not say `aggregate` or `event` anywhere – so resolving it means walking the containment hierarchy by name, one segment at a time. For that walk to land on a single element, **a name has to identify exactly one element at each position, across all kinds that can sit there**, not merely within one kind.
-
-This is a rule ESDM places on a well-formed model. A Bounded Context may not hold both an Aggregate and a Dynamic Consistency Boundary named `loan`; a Domain may not hold both a Bounded Context and a Policy named `orders`; an Aggregate may not hold both a Command and an Event named `place-order`. Each of these would make `esdm:library/lending/loan` or `esdm:library/orders` mean two things at once, and the model would be ambiguous with or without the notation.
-
-**Unique names at each position are what make the notation total**: every addressable element has exactly one reference, and every well-formed reference names at most one element. The rule costs nothing in practice – two elements at the same place with the same name are confusing to a reader long before they confuse a tool – and in return the reference needs no kind, no disambiguator, and no escaping.
+That said, a reference is built so that a rendering of the model can turn it into a location. Its segments are the containment path, and a documentation tree rendered from the model – one page per element along that path – maps every reference to exactly one page by a fixed rule. Supply the base URL of such a rendering, and a tool resolves the reference to a link. The **[esdm documentation](https://github.com/thenativeweb/esdm/issues/5)** command that produces such a tree is in the works.
 
 ## What You Can Point At
 
 Every named kind is addressable, at the level where it lives:
 
-- **At the top of the model** – a **[Domain](/concepts/domain.md)**. A **[Context Mapping](/concepts/context-mapping.md)** sits here too, but it has no enclosing Domain – its endpoints may straddle domains – so it is the one kind named through a leading marker rather than a containment path: `esdm:context-mapping/catalog-to-lending`.
+- **At the top of the model** – a **[Domain](/concepts/domain.md)**, and a **[Context Mapping](/concepts/context-mapping.md)**, which stands alone because its endpoints may straddle Domains.
 - **Within a Domain** – a **[Subdomain](/concepts/subdomain.md)**, a **[Bounded Context](/concepts/bounded-context.md)**, a **[Policy](/concepts/policy.md)**, an **[Event Handler](/concepts/event-handler.md)**, a **[Process Manager](/concepts/process-manager.md)**, and an **[External System](/concepts/external-system.md)**.
-- **Within a Bounded Context** – an **[Aggregate](/concepts/aggregate.md)**, a **[Dynamic Consistency Boundary](/concepts/dynamic-consistency-boundary.md)**, a **[Read Model](/concepts/read-model.md)**, a **[Query](/concepts/query.md)**, an **[Entity](/concepts/entity.md)**, a **[Value Object](/concepts/value-object.md)**, a **[Domain Service](/concepts/domain-service.md)**, and an **[Actor](/concepts/actor.md)**.
+- **Within a Bounded Context** – an **[Aggregate](/concepts/aggregate.md)**, a **[Dynamic Consistency Boundary](/concepts/dynamic-consistency-boundary.md)**, a free-standing **[Event](/concepts/event.md)**, a **[Read Model](/concepts/read-model.md)**, a **[Query](/concepts/query.md)**, an **[Entity](/concepts/entity.md)**, a **[Value Object](/concepts/value-object.md)**, a **[Domain Service](/concepts/domain-service.md)**, and an **[Actor](/concepts/actor.md)**.
 - **Within an Aggregate or a Dynamic Consistency Boundary** – a **[Command](/concepts/command.md)** and an **[Event](/concepts/event.md)**.
 
-The **[Extensions](/extensions/overview.md)** add two more addressable kinds. A **[Domain Story](/extensions/domain-storytelling/concepts/overview.md)** sits at Domain level, like a Process Manager: `esdm:library/first-loan`. A **[Feature](/extensions/given-when-then/concepts/feature.md)** attaches to whatever it specifies, so its path mirrors that element's – `esdm:library/catalog/book/registering-a-book` for a Feature about an Aggregate, `esdm:library/overdue-escalation/escalating-an-overdue-loan` for one about a Process Manager.
+The **[Extensions](/extensions/overview.md)** add two more addressable kinds. A **[Domain Story](/extensions/domain-storytelling/concepts/overview.md)** sits at Domain level, like a Process Manager: `esdm:domain=library/domain-story=first-loan`. A **[Feature](/extensions/given-when-then/concepts/feature.md)** sits under the unit it specifies, so its path continues that unit's – `esdm:domain=library/bounded-context=catalog/aggregate=book/feature=registering-a-book` for a Feature about an Aggregate, `esdm:domain=library/process-manager=overdue-escalation/feature=escalating-an-overdue-loan` for one about a Process Manager.
 
-References stop at the element. They do not reach into its schema fields, an Aggregate's invariants, or a single scenario inside a Feature. **The unit you point at is a modeling element, not a line inside one.**
+References stop at the element. They do not reach into its schema fields, an Aggregate's invariants, a term of a Bounded Context's ubiquitous language, or a single scenario inside a Feature. **The unit you point at is a modeling element, not a line inside one.**
 
 ## References and Renames
 
-A reference is stable against everything physical – which file an element lives in, how the files are split or merged, where they sit in the repository. It is *not* stable against renaming the element or any of its containers. Rename the `book` Aggregate to `title`, and every `esdm:library/catalog/book` that pointed at it goes stale.
+A reference is stable against everything physical – which file an element lives in, how the files are split or merged, where they sit in the repository. It is *not* stable against renaming the element or any of its containers. Rename the `book` Aggregate to `title`, and every reference that carried `aggregate=book` goes stale.
 
-This is deliberate, and it matches how references behave *inside* a model, where renaming an element breaks every internal reference to it until those are updated too. **A rename is a refactoring, and a refactoring updates its references** – the ones in other model files and the ones in the specs, tickets, and notes that point in from outside. The notation makes those outside references easy to find, because they all share the `esdm:` prefix and carry the element's name.
+This is deliberate, and it matches how references behave *inside* a model, where renaming an element breaks every internal reference to it until those are updated too. **A rename is a refactoring, and a refactoring updates its references** – the ones in other model files and the ones in the specs, tickets, and notes that point in from outside. The notation makes those outside references easy to find, because they all share the `esdm:` prefix and carry the element's kind and name.
 
-The **[Concepts overview](/concepts/overview.md)** lists every kind a reference can name, and the paths you pass to **[esdm view](/getting-started/running-esdm-view.md)** are the same containment path in relative form.
+The **[Concepts overview](/concepts/overview.md)** lists every kind a reference can name. The paths you pass to **[esdm view](/getting-started/running-esdm-view.md)** are the same containment walk in a relative, names-only form; where a name is shared by several kinds at one position, `esdm view` renders every match, and a reference names one.
