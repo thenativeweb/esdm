@@ -105,3 +105,36 @@ state:
 		assert.Len(t, diags, 1)
 	})
 }
+
+func TestAggregateIdentifiedByFieldAcceptsAnyPropertyName(t *testing.T) {
+	rule := findCatalogRule(t, "esdm/structure/aggregate-identified-by-field")
+
+	t.Run("does not throw when the referenced camelCase property exists in state", func(t *testing.T) {
+		yaml := `apiVersion: schema.esdm.io/core/v1
+kind: domain
+name: d
+---
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: bc
+scope:
+  domain: d
+---
+apiVersion: schema.esdm.io/core/v1
+kind: aggregate
+name: account
+scope:
+  domain: d
+  boundedContext: bc
+identifiedBy:
+  source: state
+  field: accountId
+state:
+  type: object
+  properties:
+    accountId:
+      type: string
+`
+		assert.Empty(t, runRule(t, rule, buildModel(t, yaml)))
+	})
+}

@@ -26,7 +26,7 @@ properties:
                         const: command-payload
                     field:
                         type: string
-                        pattern: "^[a-z][a-z0-9-]*$"
+                        minLength: 1
                   required: [source, field]
                 - properties:
                     source:

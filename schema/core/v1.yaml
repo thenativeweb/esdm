@@ -114,6 +114,18 @@ $defs:
     type: string
     pattern: "^[a-z][a-z0-9-]*$"
 
+  propertyName:
+    # A reference to a property of a JSON Schema elsewhere in the
+    # document – a field of an aggregate's `state`, an entity's
+    # `schema`, a command's `data`, an event's payload. JSON Schema
+    # places no constraint on property names, so the reference must not
+    # either: whatever the referenced schema declares can be named here,
+    # `accountId` and `account-id` alike. Whether the property exists is
+    # the linter's question, not this pattern's. Only the empty string
+    # is rejected, because it can name nothing.
+    type: string
+    minLength: 1
+
   languageTag:
     # A language in the BCP 47 shape – a two- or three-letter primary
     # subtag, optionally followed by further subtags: `en`, `de`, `de-AT`,
@@ -836,7 +848,7 @@ allOf:
                 source:
                   const: state
                 field:
-                  $ref: "#/$defs/name"
+                  $ref: "#/$defs/propertyName"
               required: [source, field]
               additionalProperties: false
             - type: object
@@ -944,7 +956,7 @@ allOf:
                   source:
                     const: command-payload
                   field:
-                    $ref: "#/$defs/name"
+                    $ref: "#/$defs/propertyName"
                 required: [source, field]
               - properties:
                   source:
@@ -1330,7 +1342,7 @@ allOf:
                 source:
                   const: event-field
                 field:
-                  $ref: "#/$defs/name"
+                  $ref: "#/$defs/propertyName"
               required: [source, field]
               additionalProperties: false
         state:
@@ -1428,7 +1440,7 @@ allOf:
                     # The timer fires at the value held by that field
                     # when the timer is set. How the field is populated
                     # is an implementation concern.
-                    $ref: "#/$defs/name"
+                    $ref: "#/$defs/propertyName"
                 required: [at]
             unevaluatedProperties: false
         reactions:
@@ -1642,7 +1654,7 @@ allOf:
                 source:
                   const: schema
                 field:
-                  $ref: "#/$defs/name"
+                  $ref: "#/$defs/propertyName"
               required: [source, field]
               additionalProperties: false
             - type: object
