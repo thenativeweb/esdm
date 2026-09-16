@@ -16,6 +16,8 @@ func Catalog() []Rule {
 		newAggregateWithoutCommandsRule(),
 		newEventWithoutConsumerRule(),
 		newEventWithoutPublisherRule(),
+		newDuplicateTranslationLanguageRule(),
+		newTranslationIntoOwnLanguageRule(),
 		newBoundedContextWithoutConsistencyUnitRule(),
 		newDomainWithoutBoundedContextRule(),
 		newOrphanExternalSystemRule(),
