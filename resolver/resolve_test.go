@@ -897,6 +897,69 @@ sentences:
 		}
 	})
 
+	t.Run("resolves term pairs whose terms exist in both bounded contexts", func(t *testing.T) {
+		dir := t.TempDir()
+		contexts := filepath.Join(dir, "contexts.esdm.yaml")
+		writeFile(t, contexts, salesAndBillingYAML)
+		mapping := filepath.Join(dir, "mapping.esdm.yaml")
+		writeFile(t, mapping, salesBillingMappingYAML+`terms:
+  - customer: Customer
+    supplier: Account
+`)
+		_, diagnostics := resolver.Resolve(parseAll(t, contexts, mapping))
+
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("flags a term pair whose term is not in the endpoint's ubiquitous language", func(t *testing.T) {
+		dir := t.TempDir()
+		contexts := filepath.Join(dir, "contexts.esdm.yaml")
+		writeFile(t, contexts, salesAndBillingYAML)
+		mapping := filepath.Join(dir, "mapping.esdm.yaml")
+		writeFile(t, mapping, salesBillingMappingYAML+`terms:
+  - customer: Customer
+    supplier: Debtor
+`)
+		_, diagnostics := resolver.Resolve(parseAll(t, contexts, mapping))
+
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, "esdm/structure/unresolved-reference", diagnostics[0].RuleID)
+		assert.Equal(t, `term "Debtor" is not defined in the ubiquitous language of bounded context "billing"`, diagnostics[0].Message)
+	})
+
+	t.Run("flags term pairs on a mapping whose endpoint is an external system", func(t *testing.T) {
+		dir := t.TempDir()
+		contexts := filepath.Join(dir, "contexts.esdm.yaml")
+		writeFile(t, contexts, salesAndBillingYAML+`---
+apiVersion: schema.esdm.io/core/v1
+kind: external-system
+name: stripe
+scope:
+  domain: commerce
+direction: outbound
+`)
+		mapping := filepath.Join(dir, "mapping.esdm.yaml")
+		writeFile(t, mapping, `apiVersion: schema.esdm.io/core/v1
+kind: context-mapping
+name: billing-stripe
+type: customer-supplier
+customer:
+  domain: commerce
+  boundedContext: billing
+supplier:
+  domain: commerce
+  externalSystem: stripe
+terms:
+  - customer: Account
+    supplier: Customer
+`)
+		_, diagnostics := resolver.Resolve(parseAll(t, contexts, mapping))
+
+		require.Len(t, diagnostics, 1)
+		assert.Equal(t, "esdm/structure/unresolved-reference", diagnostics[0].RuleID)
+		assert.Equal(t, `term mappings require both endpoints to be bounded contexts; "stripe" is an external system`, diagnostics[0].Message)
+	})
+
 	t.Run("flags context-mapping endpoints that reference a non-existent bounded-context", func(t *testing.T) {
 		dir := t.TempDir()
 		parents := writeParents(t, dir)
@@ -1314,3 +1377,42 @@ func assertHasMismatch(t *testing.T, diagnostics []diag.Diagnostic, name, parent
 	}
 	require.Failf(t, "mismatch diagnostic missing", "expected a diagnostic mentioning %q with %s %q, got %+v", name, parentKind, expectedParent, diagnostics)
 }
+
+// salesAndBillingYAML holds two bounded contexts with a
+// one-term ubiquitous language each, for the term-pair tests.
+const salesAndBillingYAML = `apiVersion: schema.esdm.io/core/v1
+kind: domain
+name: commerce
+---
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: sales
+scope:
+  domain: commerce
+language: en
+ubiquitousLanguage:
+  - term: Customer
+    definition: A party that buys from us.
+---
+apiVersion: schema.esdm.io/core/v1
+kind: bounded-context
+name: billing
+scope:
+  domain: commerce
+language: en
+ubiquitousLanguage:
+  - term: Account
+    definition: The ledger of a party we bill.
+`
+
+const salesBillingMappingYAML = `apiVersion: schema.esdm.io/core/v1
+kind: context-mapping
+name: sales-billing
+type: customer-supplier
+customer:
+  domain: commerce
+  boundedContext: sales
+supplier:
+  domain: commerce
+  boundedContext: billing
+`

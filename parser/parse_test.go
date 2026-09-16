@@ -433,3 +433,60 @@ scope:
 			"expected missing-required-field in %+v", diagnostics)
 	})
 }
+
+const customerSupplierWithTerms = `apiVersion: schema.esdm.io/core/v1
+kind: context-mapping
+name: sales-billing
+type: customer-supplier
+customer:
+  domain: commerce
+  boundedContext: sales
+supplier:
+  domain: commerce
+  boundedContext: billing
+terms:
+  - customer: Customer
+    supplier: Account
+`
+
+func TestContextMappingTerms(t *testing.T) {
+	t.Run("accepts term pairs named after the roles of an asymmetric mapping", func(t *testing.T) {
+		path := writeTempFile(t, customerSupplierWithTerms)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("requires both roles on every term pair", func(t *testing.T) {
+		document := strings.Replace(customerSupplierWithTerms, "    supplier: Account\n", "", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.True(t, hasRuleID(diagnostics, "esdm/structure/missing-required-field"),
+			"expected missing-required-field in %+v", diagnostics)
+	})
+
+	t.Run("rejects term pairs on a symmetric mapping", func(t *testing.T) {
+		document := `apiVersion: schema.esdm.io/core/v1
+kind: context-mapping
+name: sales-billing
+type: shared-kernel
+participants:
+  - domain: commerce
+    boundedContext: sales
+  - domain: commerce
+    boundedContext: billing
+terms:
+  - customer: Customer
+    supplier: Account
+`
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		require.NotEmpty(t, diagnostics)
+	})
+}

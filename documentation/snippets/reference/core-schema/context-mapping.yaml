@@ -46,6 +46,20 @@ oneOf:
                         pattern: "^[a-z][a-z0-9-]*$"
                   required: [domain, externalSystem]
                   additionalProperties: false
+        terms:
+            type: array
+            minItems: 1
+            items:
+                type: object
+                properties:
+                    customer:
+                        type: string
+                        minLength: 1
+                    supplier:
+                        type: string
+                        minLength: 1
+                required: [customer, supplier]
+                additionalProperties: false
       required: [type, customer, supplier]
     - properties:
         type:
@@ -94,6 +108,20 @@ oneOf:
                         pattern: "^[a-z][a-z0-9-]*$"
                   required: [domain, externalSystem]
                   additionalProperties: false
+        terms:
+            type: array
+            minItems: 1
+            items:
+                type: object
+                properties:
+                    conformist:
+                        type: string
+                        minLength: 1
+                    upstream:
+                        type: string
+                        minLength: 1
+                required: [conformist, upstream]
+                additionalProperties: false
       required: [type, conformist, upstream]
     - properties:
         type:
@@ -142,6 +170,20 @@ oneOf:
                         pattern: "^[a-z][a-z0-9-]*$"
                   required: [domain, externalSystem]
                   additionalProperties: false
+        terms:
+            type: array
+            minItems: 1
+            items:
+                type: object
+                properties:
+                    downstream:
+                        type: string
+                        minLength: 1
+                    upstream:
+                        type: string
+                        minLength: 1
+                required: [downstream, upstream]
+                additionalProperties: false
       required: [type, downstream, upstream]
     - properties:
         type:
@@ -190,6 +232,20 @@ oneOf:
                         pattern: "^[a-z][a-z0-9-]*$"
                   required: [domain, externalSystem]
                   additionalProperties: false
+        terms:
+            type: array
+            minItems: 1
+            items:
+                type: object
+                properties:
+                    host:
+                        type: string
+                        minLength: 1
+                    consumer:
+                        type: string
+                        minLength: 1
+                required: [host, consumer]
+                additionalProperties: false
       required: [type, host, consumer]
     - properties:
         type:
@@ -238,6 +294,20 @@ oneOf:
                         pattern: "^[a-z][a-z0-9-]*$"
                   required: [domain, externalSystem]
                   additionalProperties: false
+        terms:
+            type: array
+            minItems: 1
+            items:
+                type: object
+                properties:
+                    publisher:
+                        type: string
+                        minLength: 1
+                    consumer:
+                        type: string
+                        minLength: 1
+                required: [publisher, consumer]
+                additionalProperties: false
       required: [type, publisher, consumer]
     - properties:
         type:
