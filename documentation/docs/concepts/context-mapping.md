@@ -17,3 +17,7 @@ Context Mappings come in two shapes. **Asymmetric** mappings (customer-supplier,
 **Symmetric** mappings (shared-kernel, partnership, separate-ways) treat the two sides as peers. They name two participating Bounded Contexts. Sharing a kernel or forming a partnership with a third-party External System doesn't fit the model – those mappings live between Bounded Contexts only.
 
 Each mapping represents exactly two endpoints. Richer topologies are expressed as multiple mappings – two customer-supplier arrows, not one three-party document.
+
+## Relating the Vocabulary
+
+Two Bounded Contexts that talk to each other rarely use the same words for the same thing. What Sales calls a *Customer*, Billing calls an *Account* – and that correspondence is part of the relationship, not of either context alone. An asymmetric mapping can record it in its `terms` list: one entry per correspondence, naming the canonical term on each side by the roles of the mapping type. The two contexts keep their own languages intact, and the mapping says how they line up. Term pairs relate the contexts' own terms, in each context's own language; translations are not addressed here. Both sides have to be Bounded Contexts, since an External System has no ubiquitous language to relate to.

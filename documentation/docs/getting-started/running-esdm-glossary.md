@@ -27,6 +27,8 @@ ubiquitousLanguage:
     definition: The authoritative list of every book the library holds.
 ```
 
+The `language` field names the language the terms are written in – here English. It is required as soon as a Bounded Context declares a `ubiquitousLanguage`, because the glossary renders per language and every context has to say which one it speaks.
+
 ## Generating the Glossary
 
 From inside the directory that holds your `.esdm.yaml` files:
@@ -62,6 +64,51 @@ Each discouraged alternative recorded under `avoid` becomes its own short paragr
 !!! info
 
     A Bounded Context without a `ubiquitousLanguage` block contributes no section, and a model without any ubiquitous language at all produces just the `# Glossary` heading. That's the expected result, not an error – the exit code is still `0`.
+
+## Rendering Another Language
+
+Domain experts often speak a different language than the code. A term can carry **translations** – the same concept in another language, with its own definition and its own rejected alternatives. Suppose the `Acquisition` entry above gains a German one:
+
+```yaml
+  - term: Acquisition
+    definition: The process of adding a book to the catalog, whether bought or donated.
+    avoid:
+      - term: Purchase
+        reason: Not every acquisition is bought – donations are acquisitions too.
+    translations:
+      - language: de
+        term: Erwerb
+        definition: Die Aufnahme eines Buchs in den Katalog, ob gekauft oder gespendet.
+        avoid:
+          - term: Kauf
+            reason: Auch Spenden sind ein Erwerb.
+```
+
+Pass `--language` with a BCP 47 tag to render the glossary in that language:
+
+```shell
+./esdm glossary --language de
+```
+
+```text
+# Glossary
+
+## cataloging
+
+### Catalog
+
+The authoritative list of every book the library holds.
+
+_No translation into de._
+
+### Erwerb
+
+Die Aufnahme eines Buchs in den Katalog, ob gekauft oder gespendet.
+
+_Avoid the term "Kauf"._ Auch Spenden sind ein Erwerb.
+```
+
+A Bounded Context whose own `language` is the requested one is rendered as is. Everywhere else the translations take over, including their rejected alternatives. A term without a translation keeps its primary form and is marked with an italic note, so the glossary shows where the language is still incomplete instead of quietly dropping the term – the same idea as the avoid hints: the gaps are the useful part.
 
 ## Filtering by Path
 
