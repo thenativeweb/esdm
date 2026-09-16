@@ -78,6 +78,17 @@ func TestBuild(t *testing.T) {
 		assert.Equal(t, []string{"domain shop", "domain warehouse"}, kindsAndNames(root.Children))
 	})
 
+	t.Run("carries each element's document so renderers can read its fields", func(t *testing.T) {
+		root := tree.Build(loadModel(t, twoDomainsYAML), false)
+
+		shop := root.Children[0]
+		name, _ := shop.Document.Name().Text()
+		assert.Equal(t, "shop", name)
+		kind, _ := shop.Children[0].Children[1].Document.Kind().Text()
+		assert.Equal(t, "read-model", kind)
+		assert.False(t, root.Document.Exists(), "the synthetic root has no document")
+	})
+
 	t.Run("places elements at the position their scope names", func(t *testing.T) {
 		root := tree.Build(loadModel(t, twoDomainsYAML), false)
 
