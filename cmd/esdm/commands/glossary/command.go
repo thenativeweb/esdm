@@ -6,14 +6,19 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/thenativeweb/esdm/model"
 	"github.com/thenativeweb/esdm/modelpath"
 	"github.com/thenativeweb/esdm/runner"
 )
 
-var directory string
+var (
+	directory string
+	language  string
+)
 
 func init() {
 	Command.Flags().StringVarP(&directory, "directory", "d", ".", "directory containing the model to read the glossary from")
+	Command.Flags().StringVar(&language, "language", "", "render the glossary in this language (a BCP 47 tag such as de or de-AT); defaults to each bounded context's own language")
 }
 
 // Command is the cobra command instance registered by the
@@ -26,7 +31,7 @@ var Command = &cobra.Command{
 	Use:           "glossary [path]",
 	Short:         "Extracts the ubiquitous language of an ESDM model as Markdown",
 	Long:          "Extracts the ubiquitous language of an ESDM model in --directory and writes it to stdout as Markdown.",
-	Example:       "  esdm glossary\n  esdm glossary <domain>\n  esdm glossary <domain>/<bounded-context>",
+	Example:       "  esdm glossary\n  esdm glossary <domain>\n  esdm glossary <domain>/<bounded-context>\n  esdm glossary --language de",
 	Args:          cobra.MaximumNArgs(1),
 	SilenceUsage:  true,
 	SilenceErrors: false,
@@ -39,6 +44,9 @@ var Command = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if language != "" && !model.IsLanguageTag(language) {
+			return fmt.Errorf("invalid language %q: expected a BCP 47 language tag such as \"de\" or \"de-AT\"", language)
+		}
 
 		_, m, err := runner.RunWithModel(command.Context(), directory)
 		if err != nil {
@@ -48,7 +56,7 @@ var Command = &cobra.Command{
 			return fmt.Errorf("the resolver could not produce a model for %q; run `esdm lint` for diagnostics", directory)
 		}
 
-		g, err := Build(m, path)
+		g, err := Build(m, path, language)
 		if err != nil {
 			return err
 		}
