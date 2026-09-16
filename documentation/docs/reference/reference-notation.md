@@ -53,14 +53,53 @@ That said, a reference is built so that a rendering of the model can turn it int
 
 ## What You Can Point At
 
-Every named kind is addressable, at the level where it lives:
+Every named kind is addressable, at the level where it lives. The tables below list all of them, one reference per kind, so you can look up the shape for any element instead of deriving it. The examples come from a library model with a `catalog` and a `lending` Bounded Context.
 
-- **At the top of the model** – a **[Domain](/concepts/domain.md)**, and a **[Context Mapping](/concepts/context-mapping.md)**, which stands alone because its endpoints may straddle Domains.
-- **Within a Domain** – a **[Subdomain](/concepts/subdomain.md)**, a **[Bounded Context](/concepts/bounded-context.md)**, a **[Policy](/concepts/policy.md)**, an **[Event Handler](/concepts/event-handler.md)**, a **[Process Manager](/concepts/process-manager.md)**, and an **[External System](/concepts/external-system.md)**.
-- **Within a Bounded Context** – an **[Aggregate](/concepts/aggregate.md)**, a **[Dynamic Consistency Boundary](/concepts/dynamic-consistency-boundary.md)**, a free-standing **[Event](/concepts/event.md)**, a **[Read Model](/concepts/read-model.md)**, a **[Query](/concepts/query.md)**, an **[Entity](/concepts/entity.md)**, a **[Value Object](/concepts/value-object.md)**, a **[Domain Service](/concepts/domain-service.md)**, and an **[Actor](/concepts/actor.md)**.
-- **Within an Aggregate or a Dynamic Consistency Boundary** – a **[Command](/concepts/command.md)** and an **[Event](/concepts/event.md)**.
+### At the Top of the Model
 
-The **[Extensions](/extensions/overview.md)** add two more addressable kinds. A **[Domain Story](/extensions/domain-storytelling/concepts/overview.md)** sits at Domain level, like a Process Manager: `esdm:domain=library/domain-story=first-loan`. A **[Feature](/extensions/given-when-then/concepts/feature.md)** sits under the unit it specifies, so its path continues that unit's – `esdm:domain=library/bounded-context=catalog/aggregate=book/feature=registering-a-book` for a Feature about an Aggregate, `esdm:domain=library/process-manager=overdue-escalation/feature=escalating-an-overdue-loan` for one about a Process Manager.
+| Kind | Reference |
+| --- | --- |
+| **[Domain](/concepts/domain.md)** | `esdm:domain=library` |
+| **[Context Mapping](/concepts/context-mapping.md)** | `esdm:context-mapping=catalog-to-lending` |
+
+A Context Mapping stands alone, without a Domain segment, because its endpoints may straddle Domains.
+
+### Within a Domain
+
+| Kind | Reference |
+| --- | --- |
+| **[Subdomain](/concepts/subdomain.md)** | `esdm:domain=library/subdomain=lending` |
+| **[Bounded Context](/concepts/bounded-context.md)** | `esdm:domain=library/bounded-context=catalog` |
+| **[Policy](/concepts/policy.md)** | `esdm:domain=library/policy=notify-on-overdue` |
+| **[Event Handler](/concepts/event-handler.md)** | `esdm:domain=library/event-handler=send-reminder` |
+| **[Process Manager](/concepts/process-manager.md)** | `esdm:domain=library/process-manager=overdue-escalation` |
+| **[External System](/concepts/external-system.md)** | `esdm:domain=library/external-system=payment-provider` |
+| **[Domain Story](/extensions/domain-storytelling/concepts/overview.md)** | `esdm:domain=library/domain-story=first-loan` |
+
+### Within a Bounded Context
+
+| Kind | Reference |
+| --- | --- |
+| **[Aggregate](/concepts/aggregate.md)** | `esdm:domain=library/bounded-context=catalog/aggregate=book` |
+| **[Dynamic Consistency Boundary](/concepts/dynamic-consistency-boundary.md)** | `esdm:domain=library/bounded-context=lending/dynamic-consistency-boundary=loan` |
+| free-standing **[Event](/concepts/event.md)** | `esdm:domain=library/bounded-context=lending/event=loan-extended` |
+| **[Read Model](/concepts/read-model.md)** | `esdm:domain=library/bounded-context=catalog/read-model=books` |
+| **[Query](/concepts/query.md)** | `esdm:domain=library/bounded-context=catalog/query=list-books` |
+| **[Entity](/concepts/entity.md)** | `esdm:domain=library/bounded-context=catalog/entity=copy` |
+| **[Value Object](/concepts/value-object.md)** | `esdm:domain=library/bounded-context=catalog/value-object=isbn` |
+| **[Domain Service](/concepts/domain-service.md)** | `esdm:domain=library/bounded-context=lending/domain-service=due-date` |
+| **[Actor](/concepts/actor.md)** | `esdm:domain=library/bounded-context=lending/actor=librarian` |
+
+### Within an Aggregate or a Dynamic Consistency Boundary
+
+| Kind | Reference |
+| --- | --- |
+| **[Command](/concepts/command.md)** on an Aggregate | `esdm:domain=library/bounded-context=catalog/aggregate=book/command=register` |
+| **[Command](/concepts/command.md)** on a Dynamic Consistency Boundary | `esdm:domain=library/bounded-context=lending/dynamic-consistency-boundary=loan/command=extend` |
+| **[Event](/concepts/event.md)** owned by an Aggregate | `esdm:domain=library/bounded-context=catalog/aggregate=book/event=registered` |
+| **[Feature](/extensions/given-when-then/concepts/feature.md)** about an Aggregate | `esdm:domain=library/bounded-context=catalog/aggregate=book/feature=registering-a-book` |
+
+A **[Feature](/extensions/given-when-then/concepts/feature.md)** sits under whichever unit it specifies, so its path continues that unit's: `esdm:domain=library/bounded-context=catalog/read-model=books/feature=listing-books` for one about a Read Model, `esdm:domain=library/process-manager=overdue-escalation/feature=escalating-an-overdue-loan` for one about a Process Manager.
 
 References stop at the element. They do not reach into its schema fields, an Aggregate's invariants, a term of a Bounded Context's ubiquitous language, or a single scenario inside a Feature. **The unit you point at is a modeling element, not a line inside one.**
 
