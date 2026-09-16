@@ -12,6 +12,17 @@
 // `esdm view` path does, and an unknown segment is rejected
 // as invalid input.
 //
+// A bounded context's vocabulary is written in one language,
+// and its terms may carry translations. By default every
+// bounded context is rendered in its own language. With a
+// language selected, a bounded context written in that
+// language is rendered as is and every other one through its
+// translations, each with the translation's own rejected
+// alternatives. A term without a translation into the
+// selected language keeps its primary form and is marked, so
+// the glossary shows where the language is incomplete
+// instead of dropping the term.
+//
 // Output is plain Markdown on stdout so it can be redirected
 // into a file; the command therefore has no color option.
 package glossary

@@ -123,6 +123,7 @@ func resolveReferences(m *model.Model) []diag.Diagnostic {
 		for _, p := range e.Participants().Seq() {
 			out = append(out, checkMappingEndpoint(m, p)...)
 		}
+		out = append(out, checkMappingTerms(m, e)...)
 	}
 
 	for _, e := range m.Aggregates {
@@ -584,6 +585,91 @@ func checkMappingEndpoint(m *model.Model, endpoint ast.Node) []diag.Diagnostic {
 	default:
 		return nil
 	}
+}
+
+// mappingRoles lists, per asymmetric mapping type, the two
+// role fields whose endpoints a term pair refers to. The
+// symmetric types have no roles and no term pairs.
+var mappingRoles = map[string][2]string{
+	"customer-supplier":     {"customer", "supplier"},
+	"conformist":            {"conformist", "upstream"},
+	"anti-corruption-layer": {"downstream", "upstream"},
+	"open-host-service":     {"host", "consumer"},
+	"published-language":    {"publisher", "consumer"},
+}
+
+// checkMappingTerms verifies the term pairs of a context
+// mapping: both endpoints must be bounded contexts, since an
+// external system has no ubiquitous language, and each term
+// must be a canonical term of the ubiquitous language of the
+// bounded context on its side of the mapping. Translations
+// are not addressable here; a pair relates the two contexts'
+// own terms.
+func checkMappingTerms(m *model.Model, mapping model.ContextMappingView) []diag.Diagnostic {
+	terms := mapping.Terms()
+	if !terms.Exists() {
+		return nil
+	}
+	mappingType, _ := mapping.Type().Text()
+	roles, ok := mappingRoles[mappingType]
+	if !ok {
+		return nil
+	}
+
+	var out []diag.Diagnostic
+	for _, role := range roles {
+		endpoint := mapping.Field(role)
+		if externalSystem, isExternal := endpoint.Field("externalSystem").Text(); isExternal {
+			out = append(out, diag.Diagnostic{
+				RuleID:   "esdm/structure/unresolved-reference",
+				Severity: diag.SeverityError,
+				Message:  fmt.Sprintf("term mappings require both endpoints to be bounded contexts; %q is an external system", externalSystem),
+				Location: terms.Location(),
+			})
+			return out
+		}
+	}
+
+	for _, pair := range terms.Seq() {
+		for _, role := range roles {
+			termNode := pair.Field(role)
+			term, ok := termNode.Text()
+			if !ok {
+				continue
+			}
+			endpoint := mapping.Field(role)
+			domain := scopeField(endpoint, "domain")
+			boundedContextName := scopeField(endpoint, "boundedContext")
+			boundedContext, exists := m.LookupBoundedContext(domain, boundedContextName)
+			if !exists {
+				// The endpoint itself is unresolved and already
+				// reported by checkMappingEndpoint.
+				continue
+			}
+			if hasTerm(boundedContext, term) {
+				continue
+			}
+			out = append(out, diag.Diagnostic{
+				RuleID:   "esdm/structure/unresolved-reference",
+				Severity: diag.SeverityError,
+				Message:  fmt.Sprintf("term %q is not defined in the ubiquitous language of bounded context %q", term, boundedContextName),
+				Location: termNode.Location(),
+			})
+		}
+	}
+	return out
+}
+
+// hasTerm reports whether the bounded context's ubiquitous
+// language declares term as one of its canonical terms.
+func hasTerm(boundedContext model.BoundedContextView, term string) bool {
+	for _, entry := range boundedContext.UbiquitousLanguage().Seq() {
+		declared, ok := entry.Field("term").Text()
+		if ok && declared == term {
+			return true
+		}
+	}
+	return false
 }
 
 // checkExternalSystemReference verifies that an

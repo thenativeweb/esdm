@@ -114,6 +114,36 @@ $defs:
     type: string
     pattern: "^[a-z][a-z0-9-]*$"
 
+  languageTag:
+    # A language in the BCP 47 shape – a two- or three-letter primary
+    # subtag, optionally followed by further subtags: `en`, `de`, `de-AT`,
+    # `zh-Hant`. Only the shape is checked; the schema carries no list of
+    # languages, because terminology is regional in ways no list would
+    # anticipate.
+    type: string
+    pattern: "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+
+  rejectedTerms:
+    # Terms that were considered and rejected in favor of the one they
+    # are listed under, so that someone searching for a rejected term
+    # still lands on the canonical one and sees that it is *not* the
+    # term to use. `reason` is optional: if there is no deeper
+    # justification than "we picked the other one", forcing a reason
+    # only produces filler text.
+    type: array
+    minItems: 1
+    items:
+      type: object
+      properties:
+        term:
+          type: string
+          minLength: 1
+        reason:
+          type: string
+          minLength: 1
+      required: [term]
+      additionalProperties: false
+
   namedRule:
     # A named, natural-language rule. Used wherever the implementation must
     # enforce or encode behavior that does not fit a fixed grammar – aggregate
@@ -509,6 +539,18 @@ allOf:
       properties:
         scope:
           $ref: "#/$defs/scopeDomain"
+        language:
+          # The language the ubiquitous language below is written in.
+          # A bounded context's vocabulary is written in exactly one
+          # language – the language its `term` and `definition` fields
+          # use – and every translation is that same concept in another
+          # language. The field is required as soon as the context
+          # declares a `ubiquitousLanguage` (see the condition below),
+          # because a translation is only meaningful relative to a
+          # declared source language, and a glossary can only be
+          # rendered per language if every context says which one it
+          # speaks.
+          $ref: "#/$defs/languageTag"
         ubiquitousLanguage:
           # The canonical vocabulary of the bounded context. Each entry
           # fixes one `term` and its `definition` – deliberately no
@@ -520,9 +562,14 @@ allOf:
           # canonical one and sees that it is *not* the term to use.
           # The asymmetry (canonical term on top, rejected terms listed
           # under it) is the point – an alias field would flatten it.
-          # `reason` is optional: if there is no deeper justification
-          # than "we picked the other one", forcing a reason only
-          # produces filler text.
+          # `translations` carries the same concept in other languages.
+          # A translation is not a second term: within each language
+          # there is still exactly one, so the one-term principle holds
+          # per language. Each translation has the shape of the main
+          # entry – `term`, a required `definition`, and its own `avoid`
+          # for translations that were considered and rejected – plus the
+          # `language` it is written in. Domain experts who speak that
+          # language can then look up what a term means, in their words.
           # The field itself is optional – a bounded context may be
           # modeled before its language is fleshed out – but if present,
           # it must carry at least one term (`minItems: 1`): an empty
@@ -539,22 +586,34 @@ allOf:
                 type: string
                 minLength: 1
               avoid:
+                $ref: "#/$defs/rejectedTerms"
+              translations:
                 type: array
                 minItems: 1
                 items:
                   type: object
                   properties:
+                    language:
+                      $ref: "#/$defs/languageTag"
                     term:
                       type: string
                       minLength: 1
-                    reason:
+                    definition:
                       type: string
                       minLength: 1
-                  required: [term]
+                    avoid:
+                      $ref: "#/$defs/rejectedTerms"
+                  required: [language, term, definition]
                   additionalProperties: false
             required: [term, definition]
             additionalProperties: false
       required: [scope]
+      # A vocabulary is always written in some language; once a context
+      # declares one, it has to say which.
+      if:
+        required: [ubiquitousLanguage]
+      then:
+        required: [language]
 
   - if:
       properties:
@@ -599,6 +658,33 @@ allOf:
               $ref: "#/$defs/mappingEndpoint"
             supplier:
               $ref: "#/$defs/mappingEndpoint"
+            # `terms` relates a term of one side to a term of the other –
+            # "Customer" in sales is "Account" in billing. A term pair is
+            # an annotation of the relationship between two contexts, so
+            # it lives on the mapping rather than on either term. Each
+            # pair names the roles of this mapping type, and each value is
+            # the canonical `term` of the endpoint's ubiquitous language in
+            # that context's own language; translations are not
+            # addressable here. Pairs are only meaningful when both
+            # endpoints are bounded contexts – an external system has no
+            # ubiquitous language – which the resolver checks. The
+            # symmetric types have no `terms`: a shared kernel shares its
+            # vocabulary by definition, separate ways have no
+            # correspondence, and a partnership has no roles to name.
+            terms:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  customer:
+                    type: string
+                    minLength: 1
+                  supplier:
+                    type: string
+                    minLength: 1
+                required: [customer, supplier]
+                additionalProperties: false
           required: [type, customer, supplier]
         - properties:
             type:
@@ -607,6 +693,20 @@ allOf:
               $ref: "#/$defs/mappingEndpoint"
             upstream:
               $ref: "#/$defs/mappingEndpoint"
+            terms:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  conformist:
+                    type: string
+                    minLength: 1
+                  upstream:
+                    type: string
+                    minLength: 1
+                required: [conformist, upstream]
+                additionalProperties: false
           required: [type, conformist, upstream]
         - properties:
             type:
@@ -619,6 +719,20 @@ allOf:
               $ref: "#/$defs/mappingEndpoint"
             upstream:
               $ref: "#/$defs/mappingEndpoint"
+            terms:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  downstream:
+                    type: string
+                    minLength: 1
+                  upstream:
+                    type: string
+                    minLength: 1
+                required: [downstream, upstream]
+                additionalProperties: false
           required: [type, downstream, upstream]
         - properties:
             type:
@@ -627,6 +741,20 @@ allOf:
               $ref: "#/$defs/mappingEndpoint"
             consumer:
               $ref: "#/$defs/mappingEndpoint"
+            terms:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  host:
+                    type: string
+                    minLength: 1
+                  consumer:
+                    type: string
+                    minLength: 1
+                required: [host, consumer]
+                additionalProperties: false
           required: [type, host, consumer]
         - properties:
             type:
@@ -638,6 +766,20 @@ allOf:
               $ref: "#/$defs/mappingEndpoint"
             consumer:
               $ref: "#/$defs/mappingEndpoint"
+            terms:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                properties:
+                  publisher:
+                    type: string
+                    minLength: 1
+                  consumer:
+                    type: string
+                    minLength: 1
+                required: [publisher, consumer]
+                additionalProperties: false
           required: [type, publisher, consumer]
         - properties:
             type:

@@ -7,6 +7,9 @@ properties:
                 pattern: "^[a-z][a-z0-9-]*$"
         required: [domain]
         additionalProperties: false
+    language:
+        type: string
+        pattern: "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
     ubiquitousLanguage:
         type: array
         minItems: 1
@@ -33,6 +36,41 @@ properties:
                                 minLength: 1
                         required: [term]
                         additionalProperties: false
+                translations:
+                    type: array
+                    minItems: 1
+                    items:
+                        type: object
+                        properties:
+                            language:
+                                type: string
+                                pattern: "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+                            term:
+                                type: string
+                                minLength: 1
+                            definition:
+                                type: string
+                                minLength: 1
+                            avoid:
+                                type: array
+                                minItems: 1
+                                items:
+                                    type: object
+                                    properties:
+                                        term:
+                                            type: string
+                                            minLength: 1
+                                        reason:
+                                            type: string
+                                            minLength: 1
+                                    required: [term]
+                                    additionalProperties: false
+                        required: [language, term, definition]
+                        additionalProperties: false
             required: [term, definition]
             additionalProperties: false
 required: [scope]
+if:
+    required: [ubiquitousLanguage]
+then:
+    required: [language]

@@ -66,6 +66,21 @@ func TestRender(t *testing.T) {
 		assert.Equal(t, renderedGlossary, glossary.Render(g))
 	})
 
+	t.Run("notes a missing translation in italics below the primary definition", func(t *testing.T) {
+		g := &glossary.Glossary{
+			Sections: []glossary.Section{
+				{
+					BoundedContext: "ordering",
+					Terms: []glossary.Term{
+						{Term: "Customer", Definition: "A person who places orders.", MissingTranslation: "de"},
+					},
+				},
+			},
+		}
+
+		assert.Equal(t, "# Glossary\n\n## ordering\n\n### Customer\n\nA person who places orders.\n\n_No translation into de._\n", glossary.Render(g))
+	})
+
 	t.Run("ends the output with exactly one trailing newline", func(t *testing.T) {
 		g := &glossary.Glossary{
 			Sections: []glossary.Section{

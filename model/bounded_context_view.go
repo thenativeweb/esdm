@@ -13,6 +13,12 @@ func (b BoundedContextView) Scope() ast.Node {
 	return b.Field("scope")
 }
 
+// Language returns the BCP 47 tag of the language the
+// ubiquitous language is written in.
+func (b BoundedContextView) Language() ast.Node {
+	return b.Field("language")
+}
+
 // UbiquitousLanguage returns the ubiquitousLanguage field.
 func (b BoundedContextView) UbiquitousLanguage() ast.Node {
 	return b.Field("ubiquitousLanguage")

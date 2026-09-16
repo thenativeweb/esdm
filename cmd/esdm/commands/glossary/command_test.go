@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,6 +27,14 @@ scope:
 func runGlossaryCommand(t *testing.T, dir, content string, args []string) (string, error) {
 	t.Helper()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "model.esdm.yaml"), []byte(content), 0o644))
+
+	// glossary.Command is a package-level cobra command, so a
+	// flag set by one run (for example --language) would
+	// otherwise stay in effect for every run after it.
+	glossary.Command.Flags().VisitAll(func(flag *pflag.Flag) {
+		_ = flag.Value.Set(flag.DefValue)
+		flag.Changed = false
+	})
 
 	var buf bytes.Buffer
 	glossary.Command.SetOut(&buf)
@@ -67,6 +76,26 @@ func TestGlossaryCommand(t *testing.T) {
 
 		_, err := runGlossaryCommand(t, dir, glossaryModelYAML, []string{"shop/nonexistent"})
 		assert.Error(t, err)
+	})
+
+	t.Run("renders the requested language with --language", func(t *testing.T) {
+		dir := t.TempDir()
+
+		out, err := runGlossaryCommand(t, dir, translatedModelYAML, []string{"--language", "de"})
+		require.NoError(t, err)
+
+		assert.Contains(t, out, "### Bestellung")
+		assert.Contains(t, out, `_Avoid the term "Auftrag"._ Used for production orders elsewhere.`)
+		assert.Contains(t, out, "### Customer\n\nA person who places orders.\n\n_No translation into de._")
+		assert.NotContains(t, out, "### Order")
+	})
+
+	t.Run("rejects a --language value that is not a BCP 47 tag", func(t *testing.T) {
+		dir := t.TempDir()
+
+		_, err := runGlossaryCommand(t, dir, translatedModelYAML, []string{"--language", "German"})
+		require.Error(t, err)
+		assert.Equal(t, `invalid language "German": expected a BCP 47 language tag such as "de" or "de-AT"`, err.Error())
 	})
 
 	t.Run("emits just the heading when no bounded context has ubiquitous language", func(t *testing.T) {

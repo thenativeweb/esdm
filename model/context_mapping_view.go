@@ -70,3 +70,9 @@ func (c ContextMappingView) Publisher() ast.Node {
 func (c ContextMappingView) Participants() ast.Node {
 	return c.Field("participants")
 }
+
+// Terms returns the term pairs of an asymmetric mapping:
+// each entry names one term per role of the mapping type.
+func (c ContextMappingView) Terms() ast.Node {
+	return c.Field("terms")
+}
