@@ -157,5 +157,6 @@ nav:
               - feature: extensions/given-when-then/reference/feature.md
               - scenario: extensions/given-when-then/reference/scenario.md
               - Linter Rules: extensions/given-when-then/reference/linter-rules.md
+  - Ecosystem: ecosystem.md
   - Privacy Policy: https://www.thenativeweb.io/company/privacy-policy
   - Legal Notice: https://www.thenativeweb.io/company/legal-notice
