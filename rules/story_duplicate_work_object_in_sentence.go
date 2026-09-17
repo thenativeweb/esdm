@@ -19,8 +19,9 @@ func newStoryDuplicateWorkObjectInSentenceRule() *storyDuplicateWorkObjectInSent
 func (*storyDuplicateWorkObjectInSentenceRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStoryDuplicateWorkObjectInSentence,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityError,
-		Description: "Within a single sentence's workObjects[] list every name appears at most once. Domain Storytelling redraws work objects per sentence, so the same name in a *different* sentence is a fresh instance and not flagged; a redeclaration *inside the same sentence* is a modeling mistake.",
+		Description: "Within the `workObjects` of one Sentence, every name appears at most once. Domain Storytelling redraws Work Objects per Sentence, so the same name in another Sentence is a fresh instance and fine; a second declaration inside the same Sentence is a mistake.",
 	}
 }
 

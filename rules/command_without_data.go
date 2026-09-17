@@ -20,7 +20,7 @@ func (*commandWithoutDataRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDCommandWithoutData,
 		Severity:    diag.SeverityWarning,
-		Description: "Every command must declare a data schema (an empty schema is allowed); mirrors the JSON Schema's required: [data] constraint as defense in depth so 'no payload' is expressed deliberately.",
+		Description: "Every Command must declare a `data` schema. An empty schema is fine and says explicitly that the Command carries no payload. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

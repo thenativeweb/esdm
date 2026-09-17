@@ -19,8 +19,9 @@ func newStoryOrphanWorkObjectRule() *storyOrphanWorkObjectRule {
 func (*storyOrphanWorkObjectRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStoryOrphanWorkObject,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityWarning,
-		Description: "A work-object declared inside a sentence's workObjects[] list should be referenced from at least one edge in that same sentence; a declaration without any drawn presence is decorative. Implicit work objects - referenced from edges only, never listed in workObjects[] - are intentional and not flagged.",
+		Description: "A Work Object declared in the `workObjects` of a Sentence should be drawn by at least one edge of that Sentence; a Work Object nothing draws is decorative. Work Objects that appear only in edges, without a declaration, are intentional and not flagged.",
 	}
 }
 

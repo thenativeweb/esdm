@@ -19,8 +19,9 @@ func newStoryWithoutSentencesRule() *storyWithoutSentencesRule {
 func (*storyWithoutSentencesRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStoryWithoutSentences,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityWarning,
-		Description: "Every domain-story must declare at least one sentence; mirrors the storytelling schema's required + minItems: 1 constraint as defense in depth so an accidental schema relaxation still surfaces the modeling issue.",
+		Description: "Every Domain Story must have at least one Sentence; a story without Sentences tells nothing. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

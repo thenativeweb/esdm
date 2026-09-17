@@ -19,8 +19,9 @@ func newScenarioReferencesUnknownQueryRule() *scenarioReferencesUnknownQueryRule
 func (*scenarioReferencesUnknownQueryRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioReferencesUnknownQuery,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "Every query referenced in a read-model scenario's when must be declared in the model. The feature's bounded-context scope fixes the resolution context.",
+		Description: "Every Query a Read Model Scenario names in its `when` must be declared in the Bounded Context of the Feature.",
 	}
 }
 

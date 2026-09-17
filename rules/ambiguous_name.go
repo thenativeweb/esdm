@@ -22,7 +22,7 @@ func (*ambiguousNameRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDAmbiguousName,
 		Severity:    diag.SeverityError,
-		Description: "Within a bounded context, aggregates, dynamic consistency boundaries, entities, value objects, and domain services share one namespace: they become the types of one code module, with nothing composed into their names, so two of them cannot share a name.",
+		Description: "Within a Bounded Context, Aggregates, Dynamic Consistency Boundaries, Entities, Value Objects, and Domain Services share one namespace. They become the types of one code module, with nothing composed into their names, so two of them cannot share a name.",
 	}
 }
 

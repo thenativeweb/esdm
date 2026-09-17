@@ -20,7 +20,7 @@ func (*aggregateWithoutEventsRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDAggregateWithoutEvents,
 		Severity:    diag.SeverityWarning,
-		Description: "Aggregates should have at least one associated event; an event-less aggregate is either incomplete or miscategorised.",
+		Description: "An Aggregate should have at least one Event. An Aggregate that records nothing is either unfinished or belongs to a different kind, such as a Read Model or a Value Object.",
 	}
 }
 

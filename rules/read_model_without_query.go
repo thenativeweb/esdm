@@ -20,7 +20,7 @@ func (*readModelWithoutQueryRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDReadModelWithoutQuery,
 		Severity:    diag.SeverityWarning,
-		Description: "A read-model should have at least one query reading from it; otherwise its purpose is unclear.",
+		Description: "A Read Model should have at least one Query reading from it. A Read Model nobody reads has no purpose.",
 	}
 }
 

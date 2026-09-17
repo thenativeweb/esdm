@@ -20,7 +20,7 @@ func (*readModelWithoutProjectionsRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDReadModelWithoutProjections,
 		Severity:    diag.SeverityWarning,
-		Description: "A read-model should have at least one projection; mirrors the JSON Schema's minItems: 1 constraint as defense in depth so an accidental schema relaxation still surfaces the modeling issue.",
+		Description: "A Read Model should have at least one projection; the projections are what fill it. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

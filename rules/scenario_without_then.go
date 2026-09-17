@@ -19,8 +19,9 @@ func newScenarioWithoutThenRule() *scenarioWithoutThenRule {
 func (*scenarioWithoutThenRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioWithoutThen,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityWarning,
-		Description: "Every scenario must declare a `then` outcome; mirrors the given-when-then schema's required-fields constraint as defense in depth so an accidental schema relaxation still surfaces the modeling issue.",
+		Description: "Every Scenario must declare a `then` outcome; a Scenario without one asserts nothing. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

@@ -19,8 +19,9 @@ func newFeatureWithoutScenariosRule() *featureWithoutScenariosRule {
 func (*featureWithoutScenariosRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDFeatureWithoutScenarios,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityWarning,
-		Description: "Every feature must declare at least one scenario; mirrors the given-when-then schema's required + minItems: 1 constraint as defense in depth so an accidental schema relaxation still surfaces the modeling issue.",
+		Description: "Every Feature must declare at least one Scenario; a Feature without Scenarios specifies nothing. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

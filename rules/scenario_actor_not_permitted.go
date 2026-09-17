@@ -19,8 +19,9 @@ func newScenarioActorNotPermittedRule() *scenarioActorNotPermittedRule {
 func (*scenarioActorNotPermittedRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioActorNotPermitted,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "When a scenario names an actor on its when (aggregate or DCB feature), that actor must appear in the targeted command's actors list. A test exercising an unauthorized actor specifies a path the model does not permit.",
+		Description: "When a Scenario names an Actor in its `when`, that Actor must be listed in the `actors` of the Command the Scenario sends. A Scenario that lets an unlisted Actor send the Command describes a path the model does not permit.",
 	}
 }
 

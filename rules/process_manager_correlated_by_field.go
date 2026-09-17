@@ -22,7 +22,7 @@ func (*processManagerCorrelatedByFieldRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDProcessManagerCorrelatedByField,
 		Severity:    diag.SeverityError,
-		Description: "When process-manager.correlatedBy uses source: event-field, the named `field` must be declared in every consumed event's data.properties.",
+		Description: "When the `correlatedBy` of a Process Manager uses `source: event-field`, the named `field` must be a property of the `data` of every Event the Process Manager consumes. Otherwise an Event cannot be routed to its process instance.",
 	}
 }
 

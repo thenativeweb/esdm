@@ -20,8 +20,9 @@ func newUncoveredInvariantRule() *uncoveredInvariantRule {
 func (*uncoveredInvariantRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDUncoveredInvariant,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityWarning,
-		Description: "On an aggregate or dynamic-consistency-boundary that has a Given-When-Then feature, every named invariant should be covered by at least one scenario; an invariant that no scenario exercises is untested. Units without a Given-When-Then feature are exempt.",
+		Description: "On an Aggregate or Dynamic Consistency Boundary that has a Feature, every named invariant should be exercised by at least one Scenario. An invariant no Scenario covers is a guarantee nobody has written down how to test. Units without a Feature are exempt.",
 	}
 }
 

@@ -20,7 +20,7 @@ func (*queryWithoutResultRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDQueryWithoutResult,
 		Severity:    diag.SeverityWarning,
-		Description: "Every query must declare a result schema; mirrors the JSON Schema's required: [result] constraint as defense in depth.",
+		Description: "Every Query must declare a `result` schema. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

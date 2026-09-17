@@ -19,8 +19,9 @@ func newStoryDuplicateGroupNameRule() *storyDuplicateGroupNameRule {
 func (*storyDuplicateGroupNameRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStoryDuplicateGroupName,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityError,
-		Description: "Within a domain-story's top-level groups[] registry every group name appears at most once. Inline `groups: [name, ...]` memberships disambiguate by name; duplicate registry entries make membership references ambiguous.",
+		Description: "Within the `groups` of a Domain Story, every name appears at most once. Memberships refer to Groups by name, so a duplicate makes them ambiguous.",
 	}
 }
 

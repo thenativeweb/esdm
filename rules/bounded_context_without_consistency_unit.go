@@ -20,7 +20,7 @@ func (*boundedContextWithoutConsistencyUnitRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDBoundedContextWithoutConsistencyUnit,
 		Severity:    diag.SeverityWarning,
-		Description: "A bounded context should host at least one consistency unit (aggregate or dynamic-consistency-boundary); otherwise it is a modeling placeholder.",
+		Description: "A Bounded Context should host at least one Aggregate or Dynamic Consistency Boundary. Without a consistency unit it holds no behavior and is a placeholder.",
 	}
 }
 

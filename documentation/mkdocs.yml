@@ -111,6 +111,7 @@ nav:
   - Reference:
       - CLI: reference/cli.md
       - Reference Notation: reference/reference-notation.md
+      - Linter Rules: reference/linter-rules.md
       - Core Schema:
           - Overview: reference/core-schema/overview.md
           - actor: reference/core-schema/actor.md
@@ -144,6 +145,7 @@ nav:
           - Reference:
               - Overview: extensions/domain-storytelling/reference/overview.md
               - domain-story: extensions/domain-storytelling/reference/domain-story.md
+              - Linter Rules: extensions/domain-storytelling/reference/linter-rules.md
       - Given-When-Then:
           - Introduction: extensions/given-when-then/introduction.md
           - Concepts:
@@ -154,5 +156,6 @@ nav:
               - Overview: extensions/given-when-then/reference/overview.md
               - feature: extensions/given-when-then/reference/feature.md
               - scenario: extensions/given-when-then/reference/scenario.md
+              - Linter Rules: extensions/given-when-then/reference/linter-rules.md
   - Privacy Policy: https://www.thenativeweb.io/company/privacy-policy
   - Legal Notice: https://www.thenativeweb.io/company/legal-notice

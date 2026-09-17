@@ -21,7 +21,7 @@ func (*orphanExternalSystemRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDOrphanExternalSystem,
 		Severity:    diag.SeverityWarning,
-		Description: "Every external-system should be referenced from an actor (backedBy), an event-handler side-effect (external-call), or a context-mapping endpoint; otherwise it has no role in the model.",
+		Description: "Every External System should be referenced somewhere: from the `backedBy` of an Actor, from an external-call side effect of an Event Handler, or as the endpoint of a Context Mapping. Otherwise it has no role in the model.",
 	}
 }
 

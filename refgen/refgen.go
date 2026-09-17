@@ -27,7 +27,8 @@ var metaKeys = []string{
 // Snippets returns every reference snippet that the documentation site
 // embeds. Keys are paths relative to the snippet base directory
 // (documentation/snippets), in forward-slash form. Values are the raw
-// YAML bytes the snippet file must contain.
+// bytes the snippet file must contain: YAML for the schema excerpts,
+// Markdown for the Linter Rules entries.
 //
 // The map is the single source of truth for both the cmd/refgen CLI
 // (which writes the entries to disk) and the documentation sync test
@@ -43,6 +44,11 @@ func Snippets() (map[string][]byte, error) {
 	err = generateExtensions(out)
 	if err != nil {
 		return nil, fmt.Errorf("extensions: %w", err)
+	}
+
+	err = generateRules(out)
+	if err != nil {
+		return nil, fmt.Errorf("rules: %w", err)
 	}
 
 	return out, nil

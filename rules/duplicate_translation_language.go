@@ -20,7 +20,7 @@ func (*duplicateTranslationLanguageRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDDuplicateTranslationLanguage,
 		Severity:    diag.SeverityError,
-		Description: "A term has exactly one translation per language; two translations into the same language contradict the one-term principle the ubiquitous language rests on.",
+		Description: "A term has exactly one translation per language. Two translations into the same language contradict the one-term principle the ubiquitous language rests on.",
 	}
 }
 

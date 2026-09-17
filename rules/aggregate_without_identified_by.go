@@ -20,7 +20,7 @@ func (*aggregateWithoutIdentifiedByRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDAggregateWithoutIdentifiedBy,
 		Severity:    diag.SeverityWarning,
-		Description: "Every aggregate must declare an identifier strategy via identifiedBy; mirrors the JSON Schema's required: [identifiedBy] constraint as defense in depth.",
+		Description: "Every Aggregate must declare how its instances are identified, via `identifiedBy`. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

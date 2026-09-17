@@ -19,8 +19,9 @@ func newFeatureReferencesUnknownDynamicConsistencyBoundaryRule() *featureReferen
 func (*featureReferencesUnknownDynamicConsistencyBoundaryRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDFeatureReferencesUnknownDynamicConsistencyBoundary,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "A DCB-scoped feature must point at a declared dynamic-consistency-boundary; an unresolved scope means every scenario underneath is testing nothing.",
+		Description: "A Feature scoped to a Dynamic Consistency Boundary must name one the model declares. When the scope does not resolve, every Scenario in the Feature describes the behavior of something that does not exist.",
 	}
 }
 

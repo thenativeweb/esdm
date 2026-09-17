@@ -20,7 +20,7 @@ func (*eventWithoutPublisherRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDEventWithoutPublisher,
 		Severity:    diag.SeverityWarning,
-		Description: "Every event should be published by at least one command; a publisher-less event has no path to come into existence in a running system.",
+		Description: "Every Event should be published by at least one Command. An Event without a publisher has no way to come into existence in a running system.",
 	}
 }
 

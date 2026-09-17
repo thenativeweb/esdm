@@ -11,6 +11,10 @@ The machine-readable schema is identified by `https://schema.esdm.io/given-when-
 - **[feature](/extensions/given-when-then/reference/feature.md)** – Top-level Given-When-Then document. A Feature carries one or more Scenarios about one consistency unit.
 - **[scenario](/extensions/given-when-then/reference/scenario.md)** – Nested entry inside `feature.scenarios[]`. Not a top-level document on its own; it lives inside its Feature and inherits the Feature's variant.
 
+## Linter Rules
+
+The rules of the extension are listed on **[Linter Rules](/extensions/given-when-then/reference/linter-rules.md)**, one entry per rule with its severity and what it checks.
+
 ## Common Fields
 
 Every given-when-then top-level document carries the same shape as a core document: `apiVersion`, `kind`, `name`, an optional `description`, and an optional `metadata` block holding non-semantic `labels` and `annotations`. The required set is `apiVersion`, `kind`, and `name`; unknown top-level keys are rejected via `unevaluatedProperties: false`. The `feature` reference page restates these in its anatomy section. Scenarios are nested entries and carry only `name`, `description`, `given`, `when`, and `then`; the document-level common fields live on the surrounding Feature.

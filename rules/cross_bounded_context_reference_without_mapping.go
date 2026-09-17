@@ -22,7 +22,7 @@ func (*crossBoundedContextReferenceWithoutMappingRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDCrossBoundedContextReferenceWithoutMapping,
 		Severity:    diag.SeverityWarning,
-		Description: "When a consumer touches more than one bounded context (read-model projection across BCs, domain-scoped event-handler/policy/process-manager spanning BCs), each pair of touched BCs should be linked by a context-mapping.",
+		Description: "When a consumer reaches into more than one Bounded Context, for example a Read Model projecting Events from two contexts or a domain-scoped Policy handling Events across contexts, every pair of contexts it touches should be linked by a Context Mapping. The mapping is where the relationship between the two contexts is made explicit.",
 	}
 }
 

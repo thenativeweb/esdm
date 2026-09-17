@@ -19,8 +19,9 @@ func newStoryDuplicateActorNameRule() *storyDuplicateActorNameRule {
 func (*storyDuplicateActorNameRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStoryDuplicateActorName,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityError,
-		Description: "Within a domain-story's actors[] list every name appears at most once. Domain Storytelling is built around the rule \"one icon per actor in a story\"; a redeclaration with the same name confuses the diagram and any downstream reference resolution.",
+		Description: "Within the `actors` of a Domain Story, every name appears at most once. Domain Storytelling draws one icon per Actor in a story; a second declaration with the same name confuses the diagram and every reference to it.",
 	}
 }
 

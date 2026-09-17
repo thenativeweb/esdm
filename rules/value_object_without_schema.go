@@ -20,7 +20,7 @@ func (*valueObjectWithoutSchemaRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDValueObjectWithoutSchema,
 		Severity:    diag.SeverityWarning,
-		Description: "Every value-object must declare a schema describing the shape of one instance; mirrors the JSON Schema's required: [schema] constraint as defense in depth.",
+		Description: "Every Value Object must declare a `schema` field describing the shape of one instance. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

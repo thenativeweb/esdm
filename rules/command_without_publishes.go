@@ -20,7 +20,7 @@ func (*commandWithoutPublishesRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDCommandWithoutPublishes,
 		Severity:    diag.SeverityWarning,
-		Description: "Every command must publish at least one event; mirrors the JSON Schema's required + minItems: 1 constraint as defense in depth. A command with no publishes is a no-op intent.",
+		Description: "Every Command must publish at least one Event. A Command that publishes nothing expresses an intent without any consequence the model can see. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

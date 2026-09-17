@@ -22,19 +22,21 @@ To lint a directory other than the current one, pass `-d` (or `--directory`). Th
 
 ## Reading a Finding
 
-When the linter has something to say, it groups the output around three pieces of information per finding: the **severity**, the **location** (file, line, column), and a one-line **message** that explains what's wrong.
+When the linter has something to say, it groups the output around four pieces of information per finding: the **severity**, the **ID of the rule** that threw it, the **location** (file, line, column), and a one-line **message** that explains what's wrong.
 
 For example, if the `state` field on `book.esdm.yaml` is renamed to `stateOmitted`, the linter reports:
 
 ```text
-error: missing required field "state"
+error: esdm/structure/missing-required-field
   at book.esdm.yaml:1:1
+  missing required field "state"
 
-error: unknown field "stateOmitted"
+error: esdm/structure/unknown-field
   at book.esdm.yaml:11:3
+  unknown field "stateOmitted"
 ```
 
-Multiple findings on the same file are reported in source order. The location format is `<file>:<line>:<column>`, which most editors and CI log viewers render as a clickable link.
+Multiple findings on the same file are reported in source order. The location format is `<file>:<line>:<column>`, which most editors and CI log viewers render as a clickable link. Every rule ID has an entry on the **[Linter Rules](/reference/linter-rules.md)** page that says what the rule checks and why, so the ID is what to look up when the message alone does not tell you what to change.
 
 ## Severity and Exit Code
 

@@ -20,7 +20,7 @@ func (*actorWithoutTypeRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDActorWithoutType,
 		Severity:    diag.SeverityWarning,
-		Description: "Every actor must declare a type (human or system); mirrors the JSON Schema's required: [type] constraint as defense in depth.",
+		Description: "Every Actor must declare whether it is `human` or `system`; the type decides which other fields make sense on it. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

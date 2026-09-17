@@ -20,7 +20,7 @@ func (*processManagerWithoutEventReactionsRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDProcessManagerWithoutEventReactions,
 		Severity:    diag.SeverityWarning,
-		Description: "A process manager whose reactions are only timer-based has no event-driven behavior beyond its starting event; this is usually a modeling gap.",
+		Description: "A Process Manager whose reactions are all timer-based has no event-driven behavior beyond its starting Event. That is usually a gap: a process that only waits is not coordinating anything.",
 	}
 }
 

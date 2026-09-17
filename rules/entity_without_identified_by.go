@@ -20,7 +20,7 @@ func (*entityWithoutIdentifiedByRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDEntityWithoutIdentifiedBy,
 		Severity:    diag.SeverityWarning,
-		Description: "Every entity must declare an identifier strategy via identifiedBy; mirrors the JSON Schema's required: [identifiedBy] constraint as defense in depth.",
+		Description: "Every Entity must declare how its instances are identified, via `identifiedBy`; identity is what distinguishes an Entity from a Value Object. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

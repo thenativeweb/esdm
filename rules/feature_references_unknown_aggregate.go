@@ -19,8 +19,9 @@ func newFeatureReferencesUnknownAggregateRule() *featureReferencesUnknownAggrega
 func (*featureReferencesUnknownAggregateRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDFeatureReferencesUnknownAggregate,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "An aggregate-scoped feature must point at a declared aggregate; an unresolved scope means every scenario underneath is testing nothing.",
+		Description: "A Feature scoped to an Aggregate must name an Aggregate the model declares. When the scope does not resolve, every Scenario in the Feature describes the behavior of something that does not exist.",
 	}
 }
 

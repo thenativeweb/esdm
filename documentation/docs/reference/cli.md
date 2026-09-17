@@ -91,6 +91,8 @@ The optional `--warnings-as-errors` flag escalates warning-severity findings to 
 
 **The exit code reflects the model's correctness rather than the run's success.** `esdm lint` exits with `0` when the model is clean and with a non-zero status when at least one finding has severity `error`. Findings of severity `warning` are reported but do not by themselves cause a non-zero exit, unless `--warnings-as-errors` is set – then a single warning is enough.
 
+Every rule, its ID, and its severity is listed on **[Linter Rules](/reference/linter-rules.md)**.
+
 ## `esdm update-schema`
 
 ### Invocation

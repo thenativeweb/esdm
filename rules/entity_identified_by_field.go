@@ -20,7 +20,7 @@ func (*entityIdentifiedByFieldRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDEntityIdentifiedByField,
 		Severity:    diag.SeverityError,
-		Description: "When entity.identifiedBy uses source: schema, the named `field` must be declared in the entity's schema.properties.",
+		Description: "When the `identifiedBy` of an Entity uses `source: schema`, the named `field` must be a property of the `schema` of the Entity. Otherwise the identifier points at a value that does not exist.",
 	}
 }
 

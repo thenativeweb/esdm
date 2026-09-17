@@ -20,7 +20,7 @@ func (*processManagerWithoutStartsWhenRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDProcessManagerWithoutStartsWhen,
 		Severity:    diag.SeverityWarning,
-		Description: "Every process manager must declare at least one starting event; mirrors the JSON Schema's required + minItems: 1 constraint as defense in depth.",
+		Description: "Every Process Manager must declare at least one starting Event in `startsWhen`. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 
