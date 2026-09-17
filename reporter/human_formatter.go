@@ -15,10 +15,12 @@ import (
 //	  at /tmp/model.esdm.yaml:29:14
 //	  unresolved aggregate "ordr"
 //	  note: did you mean "order"? (/tmp/model.esdm.yaml:13:7)
+//	  see https://www.esdm.io/reference/linter-rules/#structure-unresolved-reference
 //
-//	warning: esdm/modeling/event-name-aggregate-prefix
+//	warning: esdm/modeling/event-name-with-aggregate-prefix
 //	  at /tmp/model.esdm.yaml:47:7
-//	  event name "invoice-issued" does not start with its aggregate's name "order"
+//	  event name "order-placed" repeats its aggregate's name "order"
+//	  see https://www.esdm.io/reference/linter-rules/#modeling-event-name-with-aggregate-prefix
 //
 // The Colors field toggles ANSI escape codes. Callers
 // decide based on their own TTY detection (or a
@@ -90,6 +92,17 @@ func (f *HumanFormatter) writeDiagnostic(w io.Writer, d diag.Diagnostic) error {
 			r.Message,
 			f.paint("("+locationPrefix(r.Location)+")", ansiDim),
 		)
+		if err != nil {
+			return err
+		}
+	}
+
+	// The see line closes the block: the notes above belong to
+	// the message, the URL belongs to the rule as a whole, so it
+	// comes last, dimmed like the location so the message keeps
+	// the visual weight.
+	if d.DocumentationURL != "" {
+		_, err = fmt.Fprintf(w, "  %s %s\n", f.paint("see", ansiDim), f.paint(d.DocumentationURL, ansiDim))
 		if err != nil {
 			return err
 		}

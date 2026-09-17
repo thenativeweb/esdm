@@ -14,7 +14,7 @@ These are deliberate product decisions, not gaps. Do not "fix" them.
 
 ## Linter Rules
 
-- Rules do not set `RuleID` or `Severity`; the runner stamps both from `Meta()`.
+- Rules do not set `RuleID`, `Severity`, or `DocumentationURL`; the runner stamps all three from `Meta()`.
 - RuleID format: `esdm/<category>/<name>`. Allowed categories: `structure`, `naming`, `modeling`, `linguistic`, `system`, `gwt` (rules over the given-when-then extension).
 - Severity is fixed per rule, never per finding.
 - A new rule is a new file in `rules/` with a `newXxxRule()` constructor and an entry in `Catalog()`.

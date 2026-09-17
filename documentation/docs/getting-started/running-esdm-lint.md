@@ -22,7 +22,7 @@ To lint a directory other than the current one, pass `-d` (or `--directory`). Th
 
 ## Reading a Finding
 
-When the linter has something to say, it groups the output around four pieces of information per finding: the **severity**, the **ID of the rule** that threw it, the **location** (file, line, column), and a one-line **message** that explains what's wrong.
+When the linter has something to say, it groups the output around five pieces of information per finding: the **severity**, the **ID of the rule** that threw it, the **location** (file, line, column), a one-line **message** that explains what's wrong, and a **link** to the rule's entry in the documentation.
 
 For example, if the `state` field on `book.esdm.yaml` is renamed to `stateOmitted`, the linter reports:
 
@@ -30,13 +30,15 @@ For example, if the `state` field on `book.esdm.yaml` is renamed to `stateOmitte
 error: esdm/structure/missing-required-field
   at book.esdm.yaml:1:1
   missing required field "state"
+  see https://www.esdm.io/reference/linter-rules/#structure-missing-required-field
 
 error: esdm/structure/unknown-field
   at book.esdm.yaml:11:3
   unknown field "stateOmitted"
+  see https://www.esdm.io/reference/linter-rules/#structure-unknown-field
 ```
 
-Multiple findings on the same file are reported in source order. The location format is `<file>:<line>:<column>`, which most editors and CI log viewers render as a clickable link. Every rule ID has an entry on the **[Linter Rules](/reference/linter-rules.md)** page that says what the rule checks and why, so the ID is what to look up when the message alone does not tell you what to change.
+Multiple findings on the same file are reported in source order. The location format is `<file>:<line>:<column>`, which most editors and CI log viewers render as a clickable link. The `see` line points at the rule's entry on the **[Linter Rules](/reference/linter-rules.md)** page, which says what the rule checks and why; follow it when the message alone does not tell you what to change.
 
 ## Severity and Exit Code
 
@@ -60,7 +62,7 @@ For tooling, editor integrations, or CI pipelines that want to parse findings ra
 ./esdm lint --format json
 ```
 
-Each finding is emitted as a single JSON object on its own line. The shape carries the same severity, location, and message that the human format prints, plus a stable identifier for the rule that flagged the finding. Stream the output, group it, or post-process it as you prefer.
+The output is a JSON array with one object per finding. The shape carries the same severity, location, message, and rule ID that the human format prints, plus `documentationUrl`, the address of the rule's entry on the Linter Rules page. Parse it, group it, or post-process it as you prefer.
 
 ## Linting in CI
 

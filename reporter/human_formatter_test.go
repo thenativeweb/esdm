@@ -107,6 +107,55 @@ func TestHumanFormatter(t *testing.T) {
 		assert.Equal(t, expected, buf.String())
 	})
 
+	t.Run("renders the documentation URL as a trailing see line", func(t *testing.T) {
+		f := reporter.NewHumanFormatter()
+
+		var buf bytes.Buffer
+		err := f.Format(&buf, []diag.Diagnostic{
+			{
+				RuleID:   "esdm/structure/unresolved-reference",
+				Severity: diag.SeverityError,
+				Message:  `unresolved aggregate "ordr"`,
+				Location: diag.Location{File: "event.esdm.yaml", Line: 7, Column: 14},
+				Related: []diag.Related{
+					{
+						Message:  `did you mean "order"?`,
+						Location: diag.Location{File: "aggregate.esdm.yaml", Line: 3, Column: 7},
+					},
+				},
+				DocumentationURL: "https://www.esdm.io/reference/linter-rules/#structure-unresolved-reference",
+			},
+		})
+		require.NoError(t, err)
+
+		// The see line comes last so that the block ends with the
+		// pointer to further reading, after the notes that belong
+		// to the message.
+		expected := "error: esdm/structure/unresolved-reference\n" +
+			"  at event.esdm.yaml:7:14\n" +
+			"  unresolved aggregate \"ordr\"\n" +
+			"  note: did you mean \"order\"? (aggregate.esdm.yaml:3:7)\n" +
+			"  see https://www.esdm.io/reference/linter-rules/#structure-unresolved-reference\n"
+		assert.Equal(t, expected, buf.String())
+	})
+
+	t.Run("omits the see line when a diagnostic has no documentation URL", func(t *testing.T) {
+		f := reporter.NewHumanFormatter()
+
+		var buf bytes.Buffer
+		err := f.Format(&buf, []diag.Diagnostic{
+			{
+				RuleID:   "esdm/x/y",
+				Severity: diag.SeverityWarning,
+				Message:  "m",
+				Location: diag.Location{File: "a", Line: 1, Column: 1},
+			},
+		})
+		require.NoError(t, err)
+
+		assert.NotContains(t, buf.String(), "see ")
+	})
+
 	t.Run("wraps the severity label and rule id in ANSI escape codes when Colors is enabled", func(t *testing.T) {
 		f := reporter.NewHumanFormatter()
 		f.Colors = true

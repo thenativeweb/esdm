@@ -85,13 +85,13 @@ esdm lint [flags]
 
 `esdm lint` walks a directory and lints every `.esdm.yaml` file it finds. The directory is selected with `-d` / `--directory`, defaulting to the current working directory. The walk is recursive; the linter does not stop at sub-directory boundaries.
 
-The output format is selected with `--format`. The default is `human`, which produces a readable report grouped by file, with severity-colored headers and source excerpts. The alternative is `json`, which produces a machine-readable stream of one diagnostic per line, suitable for CI pipelines and editor integrations. The `--color` flag controls human-output coloring: `auto` detects the terminal capability, `always` forces colors on, and `never` suppresses them. The flag is ignored when `--format` is `json`.
+The output format is selected with `--format`. The default is `human`, which produces a readable report grouped by file, with severity-colored headers and source excerpts. The alternative is `json`, which produces a machine-readable JSON array with one object per finding, suitable for CI pipelines and editor integrations. The `--color` flag controls human-output coloring: `auto` detects the terminal capability, `always` forces colors on, and `never` suppresses them. The flag is ignored when `--format` is `json`.
 
 The optional `--warnings-as-errors` flag escalates warning-severity findings to errors for exit-code purposes only. The output and the formatted findings are unchanged; the flag affects nothing other than whether a warning-only run exits with `0` or with a non-zero status. Default is off.
 
 **The exit code reflects the model's correctness rather than the run's success.** `esdm lint` exits with `0` when the model is clean and with a non-zero status when at least one finding has severity `error`. Findings of severity `warning` are reported but do not by themselves cause a non-zero exit, unless `--warnings-as-errors` is set – then a single warning is enough.
 
-Every rule, its ID, and its severity is listed on **[Linter Rules](/reference/linter-rules.md)**.
+Every rule, its ID, and its severity is listed on **[Linter Rules](/reference/linter-rules.md)**, and every finding carries the address of its entry there: the human format prints it as a trailing `see` line, the JSON format as `documentationUrl`.
 
 ## `esdm update-schema`
 

@@ -2,7 +2,7 @@
 
 `esdm lint` checks a model in two stages. First, the parser and the resolver make sure the documents are well-formed: valid YAML, a known `apiVersion`, the shape the schema prescribes, and references that point at declared elements. Only when that stage reports no error do the rules run. A rule looks at the resolved model as a whole and throws when it finds something the schema cannot express: an Event that nothing publishes, a Feature that names a Command the model does not have, two domain types that share a name.
 
-Every finding carries the ID of the rule that threw it, in the form `esdm/<category>/<name>`. This page has one entry per rule over the core schema: the severity it throws at, and what it checks and why. The rules of the extensions live next to the extension they belong to, on **[Given-When-Then: Linter Rules](/extensions/given-when-then/reference/linter-rules.md)** and **[Domain Storytelling: Linter Rules](/extensions/domain-storytelling/reference/linter-rules.md)**.
+Every finding carries the ID of the rule that threw it, in the form `esdm/<category>/<name>`, and the address of its entry on this page, so you can follow it straight from the terminal or from the JSON output. This page has one entry per rule over the core schema: the severity it throws at, and what it checks and why. The rules of the extensions live next to the extension they belong to, on **[Given-When-Then: Linter Rules](/extensions/given-when-then/reference/linter-rules.md)** and **[Domain Storytelling: Linter Rules](/extensions/domain-storytelling/reference/linter-rules.md)**.
 
 ## Severity
 
