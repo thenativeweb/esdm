@@ -13,12 +13,19 @@ type Related struct {
 // through the esdm linter pipeline. It is produced by the
 // parser, resolver, and rules, and consumed by the
 // reporter's formatters.
+//
+// DocumentationURL is the address of the finding's entry
+// in the published documentation. Producers leave it
+// empty; the runner fills it in for every diagnostic, so
+// that formatters can point the reader at the explanation
+// without knowing how the documentation is laid out.
 type Diagnostic struct {
-	RuleID   string
-	Severity Severity
-	Message  string
-	Location Location
-	Related  []Related
+	RuleID           string
+	Severity         Severity
+	Message          string
+	Location         Location
+	Related          []Related
+	DocumentationURL string
 }
 
 // Reporter collects Diagnostics during a linter run.

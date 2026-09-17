@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/thenativeweb/esdm/diag"
+	"github.com/thenativeweb/esdm/rules"
 	"github.com/thenativeweb/esdm/runner"
 	"github.com/thenativeweb/esdm/schema"
 )
@@ -162,6 +163,23 @@ data:
 		for _, d := range diagnostics {
 			assert.NotEqual(t, "esdm/modeling/event-name-with-aggregate-prefix", d.RuleID,
 				"rule engine should have been skipped when schema errors exist")
+		}
+	})
+
+	t.Run("links parser diagnostics to the core Linter Rules page", func(t *testing.T) {
+		dir := t.TempDir()
+		writeParents(t, dir)
+		writeESDM(t, dir, "event.esdm.yaml", strings.Replace(validEventYAML, "name: placed\n", "", 1))
+
+		diagnostics, err := runner.Run(context.Background(), dir)
+		require.NoError(t, err)
+		require.NotEmpty(t, diagnostics)
+
+		// Parser and resolver both throw here; whatever they report,
+		// every entry has to point at the core page under its own anchor.
+		for _, d := range diagnostics {
+			expected := "https://www.esdm.io/reference/linter-rules/#" + rules.Meta{ID: d.RuleID}.Anchor()
+			assert.Equal(t, expected, d.DocumentationURL, d.RuleID)
 		}
 	})
 

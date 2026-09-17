@@ -11,18 +11,21 @@ import (
 )
 
 // ruleReporter wraps a diag.Reporter for a specific rule.
-// It stamps the configured RuleID and Severity onto every
-// Diagnostic the rule emits, so rule implementations can
-// focus on Message, Location, and Related.
+// It stamps the configured RuleID, Severity, and
+// DocumentationURL onto every Diagnostic the rule emits, so
+// rule implementations can focus on Message, Location, and
+// Related.
 type ruleReporter struct {
-	inner    diag.Reporter
-	ruleID   string
-	severity diag.Severity
+	inner            diag.Reporter
+	ruleID           string
+	severity         diag.Severity
+	documentationURL string
 }
 
 func (r *ruleReporter) Report(d diag.Diagnostic) {
 	d.RuleID = r.ruleID
 	d.Severity = r.severity
+	d.DocumentationURL = r.documentationURL
 	r.inner.Report(d)
 }
 
@@ -48,9 +51,10 @@ func runRule(ctx context.Context, r rules.Rule, m *model.Model, shared diag.Repo
 	}()
 
 	ruleReport := &ruleReporter{
-		inner:    shared,
-		ruleID:   meta.ID,
-		severity: meta.Severity,
+		inner:            shared,
+		ruleID:           meta.ID,
+		severity:         meta.Severity,
+		documentationURL: meta.DocumentationURL(),
 	}
 
 	r.Check(ctx, m, ruleReport)

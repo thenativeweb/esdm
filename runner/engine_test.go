@@ -31,7 +31,7 @@ func (s *stubRule) Check(ctx context.Context, m *model.Model, r diag.Reporter) {
 }
 
 func TestRunRules(t *testing.T) {
-	t.Run("stamps RuleID and Severity onto every reported diagnostic", func(t *testing.T) {
+	t.Run("stamps RuleID, Severity, and DocumentationURL onto every reported diagnostic", func(t *testing.T) {
 		rule := &stubRule{
 			id:       "esdm/x/y",
 			severity: diag.SeverityWarning,
@@ -50,6 +50,7 @@ func TestRunRules(t *testing.T) {
 		assert.Equal(t, "esdm/x/y", all[0].RuleID)
 		assert.Equal(t, diag.SeverityWarning, all[0].Severity)
 		assert.Equal(t, "something", all[0].Message)
+		assert.Equal(t, "https://www.esdm.io/reference/linter-rules/#x-y", all[0].DocumentationURL)
 	})
 
 	t.Run("isolates a panicking rule with a system diagnostic", func(t *testing.T) {
