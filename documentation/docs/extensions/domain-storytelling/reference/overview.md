@@ -10,6 +10,10 @@ The machine-readable schema is identified by `https://schema.esdm.io/domain-stor
 
 - **[domain-story](/extensions/domain-storytelling/reference/domain-story.md)** – Top-level Domain Storytelling document. A story is a numbered sequence of Sentences that describe one narrative flow through the domain.
 
+## Linter Rules
+
+The rules of the extension are listed on **[Linter Rules](/extensions/domain-storytelling/reference/linter-rules.md)**, one entry per rule with its severity and what it checks.
+
 ## Common Fields
 
 A Domain Storytelling document carries the same top-level shape as a core document: `apiVersion`, `kind`, `name`, an optional `description`, and an optional `metadata` block holding non-semantic `labels` and `annotations`. The required set is `apiVersion`, `kind`, and `name`; unknown top-level keys are rejected via `unevaluatedProperties: false`. The reference page restates these in its anatomy section.
