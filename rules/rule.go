@@ -49,6 +49,26 @@ func (m Meta) Name() string {
 	return name
 }
 
+// documentationSite is the root of the published documentation;
+// the Linter Rules pages live underneath it.
+const documentationSite = "https://www.esdm.io"
+
+// DocumentationURL returns the address of the rule's entry in the
+// documentation: the Linter Rules page of its extension, or the
+// core page when Extension is empty, followed by the anchor. The
+// page paths mirror the navigation of the documentation site; a
+// test in the documentation package checks that the pages exist.
+// A Meta built from a bare ID, as the runner does for diagnostics
+// of parser, resolver, and runner, resolves to the core page,
+// where those diagnostics are documented by hand.
+func (m Meta) DocumentationURL() string {
+	page := "/reference/linter-rules/"
+	if m.Extension != "" {
+		page = "/extensions/" + m.Extension + "/reference/linter-rules/"
+	}
+	return documentationSite + page + "#" + m.Anchor()
+}
+
 // Anchor returns the fragment identifier of the rule's
 // entry on its Linter Rules page: the category and the
 // name joined by a hyphen. The category is part of the

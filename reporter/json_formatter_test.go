@@ -41,6 +41,50 @@ func TestJSONFormatter(t *testing.T) {
 		assert.Equal(t, float64(7), loc["column"])
 	})
 
+	t.Run("renders the documentation URL as documentationUrl", func(t *testing.T) {
+		f := reporter.NewJSONFormatter()
+
+		var buf bytes.Buffer
+		err := f.Format(&buf, []diag.Diagnostic{
+			{
+				RuleID:           "esdm/naming/event-past-tense",
+				Severity:         diag.SeverityWarning,
+				Message:          "m",
+				Location:         diag.Location{File: "a.esdm.yaml", Line: 3, Column: 7},
+				DocumentationURL: "https://www.esdm.io/reference/linter-rules/#naming-event-past-tense",
+			},
+		})
+		require.NoError(t, err)
+
+		var got []map[string]any
+		require.NoError(t, json.Unmarshal(buf.Bytes(), &got))
+		require.Len(t, got, 1)
+
+		assert.Equal(t, "https://www.esdm.io/reference/linter-rules/#naming-event-past-tense", got[0]["documentationUrl"])
+	})
+
+	t.Run("omits documentationUrl when a diagnostic has none", func(t *testing.T) {
+		f := reporter.NewJSONFormatter()
+
+		var buf bytes.Buffer
+		err := f.Format(&buf, []diag.Diagnostic{
+			{
+				RuleID:   "esdm/x/y",
+				Severity: diag.SeverityWarning,
+				Message:  "m",
+				Location: diag.Location{File: "a", Line: 1, Column: 1},
+			},
+		})
+		require.NoError(t, err)
+
+		var got []map[string]any
+		require.NoError(t, json.Unmarshal(buf.Bytes(), &got))
+		require.Len(t, got, 1)
+
+		_, hasField := got[0]["documentationUrl"]
+		assert.False(t, hasField)
+	})
+
 	t.Run("renders an empty slice as an empty JSON array", func(t *testing.T) {
 		f := reporter.NewJSONFormatter()
 

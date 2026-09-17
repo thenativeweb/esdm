@@ -54,7 +54,7 @@ func RunWithModel(ctx context.Context, dir string) ([]diag.Diagnostic, *model.Mo
 
 	if driftDiagnostic, hasDrift := verifyLocalSchemas(dir); hasDrift {
 		collector.Report(driftDiagnostic)
-		return collector.All(), nil, nil
+		return linkToDocumentation(collector.All()), nil, nil
 	}
 
 	paths, err := loader.Walk(dir)
@@ -85,7 +85,23 @@ func RunWithModel(ctx context.Context, dir string) ([]diag.Diagnostic, *model.Mo
 		RunRules(ctx, rules.Catalog(), resolvedModel, collector)
 	}
 
-	return collector.All(), resolvedModel, nil
+	return linkToDocumentation(collector.All()), resolvedModel, nil
+}
+
+// linkToDocumentation fills in the DocumentationURL of every
+// diagnostic that still lacks one. Rule diagnostics arrive with
+// the URL already stamped from their Meta; the diagnostics of
+// parser, resolver, and runner carry only an ID, and their
+// entries live on the core Linter Rules page, which is exactly
+// where a Meta built from the bare ID points.
+func linkToDocumentation(diagnostics []diag.Diagnostic) []diag.Diagnostic {
+	for i := range diagnostics {
+		if diagnostics[i].DocumentationURL != "" {
+			continue
+		}
+		diagnostics[i].DocumentationURL = rules.Meta{ID: diagnostics[i].RuleID}.DocumentationURL()
+	}
+	return diagnostics
 }
 
 // verifyLocalSchemas runs schema.Verify against the

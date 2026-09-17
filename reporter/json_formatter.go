@@ -18,7 +18,8 @@ import (
 //	    "severity": "warning",
 //	    "message":  "...",
 //	    "location": {"file": "a.esdm.yaml", "line": 3, "column": 7},
-//	    "related":  [{"message": "...", "location": {...}}]
+//	    "related":  [{"message": "...", "location": {...}}],
+//	    "documentationUrl": "https://www.esdm.io/reference/linter-rules/#naming-event-past-tense"
 //	  },
 //	  ...
 //	]
@@ -41,11 +42,12 @@ type jsonRelated struct {
 }
 
 type jsonDiagnostic struct {
-	RuleID   string        `json:"ruleId"`
-	Severity string        `json:"severity"`
-	Message  string        `json:"message"`
-	Location jsonLocation  `json:"location"`
-	Related  []jsonRelated `json:"related,omitempty"`
+	RuleID           string        `json:"ruleId"`
+	Severity         string        `json:"severity"`
+	Message          string        `json:"message"`
+	Location         jsonLocation  `json:"location"`
+	Related          []jsonRelated `json:"related,omitempty"`
+	DocumentationURL string        `json:"documentationUrl,omitempty"`
 }
 
 // Format writes the diagnostics as a pretty-printed JSON
@@ -62,6 +64,7 @@ func (f *JSONFormatter) Format(w io.Writer, diagnostics []diag.Diagnostic) error
 				Line:   d.Location.Line,
 				Column: d.Location.Column,
 			},
+			DocumentationURL: d.DocumentationURL,
 		}
 
 		if len(d.Related) > 0 {
