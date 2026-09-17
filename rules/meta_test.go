@@ -75,3 +75,20 @@ func TestCatalogExtensions(t *testing.T) {
 		}
 	})
 }
+
+func TestMetaDocumentationURL(t *testing.T) {
+	t.Run("points a core rule at its entry on the core Linter Rules page", func(t *testing.T) {
+		meta := rules.Meta{ID: "esdm/modeling/aggregate-without-commands"}
+		assert.Equal(t, "https://www.esdm.io/reference/linter-rules/#modeling-aggregate-without-commands", meta.DocumentationURL())
+	})
+
+	t.Run("points an extension rule at the Linter Rules page of its extension", func(t *testing.T) {
+		meta := rules.Meta{ID: "esdm/gwt/scenario-without-then", Extension: "given-when-then"}
+		assert.Equal(t, "https://www.esdm.io/extensions/given-when-then/reference/linter-rules/#gwt-scenario-without-then", meta.DocumentationURL())
+	})
+
+	t.Run("points a pipeline diagnostic outside the catalog at the core page", func(t *testing.T) {
+		meta := rules.Meta{ID: "esdm/structure/unresolved-reference"}
+		assert.Equal(t, "https://www.esdm.io/reference/linter-rules/#structure-unresolved-reference", meta.DocumentationURL())
+	})
+}
