@@ -30,4 +30,4 @@ The ESDM Visualizer renders a directory of `.esdm.yaml` files as an interactive 
 - **Reads:** core, domain-storytelling, given-when-then
 - **Run:** `docker run -p 3000:3000 -v .:/data impierce/esdm-visualizer` in the model directory, then open `http://localhost:3000`
 - **Source:** **[github.com/impierce/esdm-visualizer](https://github.com/impierce/esdm-visualizer)**
-- **Verified with ESDM:** 0.14.0
+- **Verified with ESDM:** 0.15.0
