@@ -26,6 +26,8 @@ You don't have to write code to help. Field reports are among the most valuable 
 
 The documentation lives in this repository under `documentation/docs/`, so corrections and improvements arrive as ordinary pull requests, and we welcome them. It is written in American English; follow the tone and structure of the existing pages. To preview your changes locally, run `make dev-documentation`, which needs Docker.
 
+If you have built a tool that reads ESDM models, the **[Ecosystem page](documentation/docs/ecosystem.md)** of the documentation is where it belongs. Propose an entry with a pull request against that page, following the criteria it states; the entry itself is the pull request, no issue needed.
+
 ## Working on Code
 
 ESDM is written in Go; the required version is pinned in `go.mod`. Branch off `main` and name the branch in kebab-case after what it does, for example `skip-update-check-on-redirected-stdout`.
