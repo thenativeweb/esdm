@@ -490,3 +490,78 @@ terms:
 		require.NotEmpty(t, diagnostics)
 	})
 }
+
+// camelCaseIdentifier references a state property that is
+// not kebab-case. JSON Schema places no constraint on
+// property names, so a reference to one must not either.
+const camelCaseIdentifier = `apiVersion: schema.esdm.io/core/v1
+kind: aggregate
+name: account
+scope:
+  domain: commerce
+  boundedContext: billing
+identifiedBy:
+  source: state
+  field: accountId
+state:
+  type: object
+  properties:
+    accountId:
+      type: string
+`
+
+func TestFieldReferences(t *testing.T) {
+	t.Run("accepts a field reference in any form the referenced schema allows", func(t *testing.T) {
+		path := writeTempFile(t, camelCaseIdentifier)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("accepts a timer that names a camelCase state field", func(t *testing.T) {
+		document := `apiVersion: schema.esdm.io/core/v1
+kind: process-manager
+name: reminder
+scope:
+  domain: commerce
+deliveryGuarantee: at-most-once
+correlatedBy:
+  source: event-field
+  field: orderId
+state:
+  type: object
+  properties:
+    dueAt:
+      type: string
+timers:
+  - name: due
+    at: dueAt
+startsWhen:
+  - boundedContext: ordering
+    aggregate: order
+    event: placed
+endsWhen:
+  - name: done
+    condition: state.completed is true
+reactions:
+  - when:
+      timer: due
+    rule: remind
+`
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		assert.Empty(t, diagnostics)
+	})
+
+	t.Run("still rejects an empty field reference", func(t *testing.T) {
+		document := strings.Replace(camelCaseIdentifier, "  field: accountId\n", "  field: \"\"\n", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		require.NotEmpty(t, diagnostics)
+	})
+}

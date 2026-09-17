@@ -33,7 +33,7 @@ properties:
                     const: event-field
                 field:
                     type: string
-                    pattern: "^[a-z][a-z0-9-]*$"
+                    minLength: 1
               required: [source, field]
               additionalProperties: false
     state:
@@ -131,7 +131,7 @@ properties:
                 - properties:
                     at:
                         type: string
-                        pattern: "^[a-z][a-z0-9-]*$"
+                        minLength: 1
                   required: [at]
             unevaluatedProperties: false
     reactions:
