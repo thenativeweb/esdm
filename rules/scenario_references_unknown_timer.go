@@ -20,8 +20,9 @@ func newScenarioReferencesUnknownTimerRule() *scenarioReferencesUnknownTimerRule
 func (*scenarioReferencesUnknownTimerRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioReferencesUnknownTimer,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "Every timer referenced from a process-manager scenario's when, then.setTimers, or then.cancelTimers must be declared in the targeted process-manager's timers list.",
+		Description: "Every timer a Process Manager Scenario names in its `when`, `then.setTimers`, or `then.cancelTimers` must be declared in the `timers` of the Process Manager the Feature targets.",
 	}
 }
 

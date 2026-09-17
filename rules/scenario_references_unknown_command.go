@@ -20,8 +20,9 @@ func newScenarioReferencesUnknownCommandRule() *scenarioReferencesUnknownCommand
 func (*scenarioReferencesUnknownCommandRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioReferencesUnknownCommand,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "Every command referenced in a scenario's when (aggregate/DCB features) or in a process-manager scenario's then.emits must be declared in the model. Bare command names resolve through the feature's scope; scoped command references resolve directly through their {boundedContext, aggregate|dynamicConsistencyBoundary, command} triple.",
+		Description: "Every Command a Scenario names in its `when`, or in the `emits` of a Process Manager Scenario, must be declared in the model. A bare Command name resolves through the scope of the Feature; a scoped reference names its Bounded Context and consistency unit explicitly.",
 	}
 }
 

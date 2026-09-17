@@ -20,7 +20,7 @@ func (*externalSystemWithoutDirectionRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDExternalSystemWithoutDirection,
 		Severity:    diag.SeverityWarning,
-		Description: "Every external-system must declare a direction (inbound, outbound, or bidirectional); mirrors the JSON Schema's required: [direction] constraint as defense in depth.",
+		Description: "Every External System must declare its `direction`: `inbound`, `outbound`, or `bidirectional`. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

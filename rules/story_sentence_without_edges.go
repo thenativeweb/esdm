@@ -19,8 +19,9 @@ func newStorySentenceWithoutEdgesRule() *storySentenceWithoutEdgesRule {
 func (*storySentenceWithoutEdgesRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStorySentenceWithoutEdges,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityWarning,
-		Description: "Every sentence in a domain-story must carry at least one edge; mirrors the storytelling schema's required + minItems: 1 constraint on edges as defense in depth so an accidental schema relaxation still surfaces the modeling issue.",
+		Description: "Every Sentence of a Domain Story must draw at least one edge; a Sentence without edges tells nothing. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

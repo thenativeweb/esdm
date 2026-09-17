@@ -21,7 +21,7 @@ func (*eventNameWithAggregatePrefixRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDEventNameWithAggregatePrefix,
 		Severity:    diag.SeverityWarning,
-		Description: "An aggregate-bound event's scope already conveys the aggregate; repeating the aggregate's name at the start of the event name is redundant. BC-scoped events (DCB-emitted) are exempt, because no enclosing aggregate provides the context.",
+		Description: "An Event bound to an Aggregate should not repeat the name of the Aggregate at the start of its own name. The scope already conveys the Aggregate, and ESDM composes the full name from Aggregate and Event wherever it is needed, so `book-registered` on the Aggregate `book` would read as `BookBookRegistered`. Events scoped to a Bounded Context are exempt, because no enclosing Aggregate provides the context.",
 	}
 }
 

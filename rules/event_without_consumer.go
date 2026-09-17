@@ -21,7 +21,7 @@ func (*eventWithoutConsumerRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDEventWithoutConsumer,
 		Severity:    diag.SeverityWarning,
-		Description: "Events should be consumed somewhere (event-handler, policy, process-manager, read-model, or DCB); a never-consumed event is usually a modeling leftover.",
+		Description: "An Event should be consumed somewhere: by an Event Handler, a Policy, a Process Manager, a Read Model, or a Dynamic Consistency Boundary. An Event nobody consumes is usually a leftover from an earlier version of the model.",
 	}
 }
 

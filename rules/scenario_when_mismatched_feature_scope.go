@@ -21,8 +21,9 @@ func newScenarioWhenMismatchedFeatureScopeRule() *scenarioWhenMismatchedFeatureS
 func (*scenarioWhenMismatchedFeatureScopeRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioWhenMismatchedFeatureScope,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityWarning,
-		Description: "A scenario's when shape must match its feature's scope variant: aggregate/DCB features take a command, process-manager features take an event or timer, read-model features take a query. Mirrors the schema's if-then bindings as defense in depth so an accidental schema relaxation still surfaces the mismatch.",
+		Description: "The `when` of a Scenario must match the variant of its Feature: Aggregate and Dynamic Consistency Boundary Features take a Command, Process Manager Features take an Event or a timer, and Read Model Features take a Query. The schema already binds these shapes; the rule keeps the binding in place independently of the schema.",
 	}
 }
 

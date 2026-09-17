@@ -20,7 +20,7 @@ func (*orphanContextMappingRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDOrphanContextMapping,
 		Severity:    diag.SeverityWarning,
-		Description: "A context-mapping linking two bounded contexts should be backed by an actual cross-BC reference somewhere in the model; otherwise it documents a relationship that nothing in the model uses.",
+		Description: "A Context Mapping between two Bounded Contexts should be backed by an actual reference across that boundary somewhere in the model. Otherwise it documents a relationship nothing in the model uses.",
 	}
 }
 

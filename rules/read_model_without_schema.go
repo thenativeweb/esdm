@@ -20,7 +20,7 @@ func (*readModelWithoutSchemaRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDReadModelWithoutSchema,
 		Severity:    diag.SeverityWarning,
-		Description: "Every read-model must declare a schema describing what is materialized; mirrors the JSON Schema's required: [schema] constraint as defense in depth.",
+		Description: "Every Read Model must declare a `schema` field describing what it materializes. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

@@ -20,7 +20,7 @@ func (*aggregateIdentifiedByFieldRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDAggregateIdentifiedByField,
 		Severity:    diag.SeverityError,
-		Description: "When aggregate.identifiedBy uses source: state, the named `field` must be declared in the aggregate's state.properties.",
+		Description: "When the `identifiedBy` of an Aggregate uses `source: state`, the named `field` must be a property of the `state` of the Aggregate. Otherwise the identifier points at a value that does not exist.",
 	}
 }
 

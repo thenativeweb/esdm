@@ -21,7 +21,7 @@ func (*consumerAtLeastOnceWithoutIdempotencyRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDConsumerAtLeastOnceWithoutIdempotency,
 		Severity:    diag.SeverityWarning,
-		Description: "An event-handler, policy or process-manager declared with deliveryGuarantee: at-least-once must declare an idempotency strategy; mirrors the JSON Schema's allOf if-then constraint as defense in depth.",
+		Description: "An Event Handler, Policy, or Process Manager with `deliveryGuarantee: at-least-once` must declare an idempotency strategy, because it will see the same Event more than once. The schema already requires this combination; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

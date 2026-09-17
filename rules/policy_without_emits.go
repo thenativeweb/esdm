@@ -20,7 +20,7 @@ func (*policyWithoutEmitsRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDPolicyWithoutEmits,
 		Severity:    diag.SeverityWarning,
-		Description: "Every policy must emit at least one command; mirrors the JSON Schema's required + minItems: 1 constraint as defense in depth. A policy that handles events without emitting anything is observation, which is event-handler territory.",
+		Description: "Every Policy must emit at least one Command; a Policy exists to turn Events into Commands, and a Policy that only observes is an Event Handler. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

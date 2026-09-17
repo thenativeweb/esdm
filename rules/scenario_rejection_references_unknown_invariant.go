@@ -20,8 +20,9 @@ func newScenarioRejectionReferencesUnknownInvariantRule() *scenarioRejectionRefe
 func (*scenarioRejectionReferencesUnknownInvariantRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioRejectionReferencesUnknownInvariant,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "When a scenario's then.rejection points at a named invariant, that invariant must appear in the targeted unit's invariants list.",
+		Description: "When `then.rejection` names an invariant, that invariant must be declared in the `invariants` of the consistency unit the Feature targets. A rejection by an invariant the unit does not have describes a guarantee the model does not make.",
 	}
 }
 

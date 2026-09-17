@@ -20,7 +20,7 @@ func (*translationIntoOwnLanguageRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDTranslationIntoOwnLanguage,
 		Severity:    diag.SeverityError,
-		Description: "A translation into the language the bounded context itself is written in is a second term in that language, which the ubiquitous language does not allow.",
+		Description: "A translation into the language the Bounded Context itself is written in is a second term in that language, which the ubiquitous language does not allow.",
 	}
 }
 

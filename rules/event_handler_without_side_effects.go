@@ -20,7 +20,7 @@ func (*eventHandlerWithoutSideEffectsRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDEventHandlerWithoutSideEffects,
 		Severity:    diag.SeverityWarning,
-		Description: "Every event-handler must declare at least one side effect; mirrors the JSON Schema's required + minItems: 1 constraint as defense in depth. An event-handler whose only purpose was further state changes should be a process manager.",
+		Description: "Every Event Handler must declare at least one side effect; reacting to Events with further state changes instead is the job of a Process Manager. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

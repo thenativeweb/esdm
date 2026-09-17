@@ -20,7 +20,7 @@ func (*aggregateWithoutCommandsRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDAggregateWithoutCommands,
 		Severity:    diag.SeverityWarning,
-		Description: "Aggregates should expose at least one command; a command-less aggregate cannot be driven from the outside.",
+		Description: "An Aggregate should expose at least one Command. Without one, nothing can drive it from the outside, so it never changes state and never publishes an Event.",
 	}
 }
 

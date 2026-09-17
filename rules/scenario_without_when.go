@@ -19,8 +19,9 @@ func newScenarioWithoutWhenRule() *scenarioWithoutWhenRule {
 func (*scenarioWithoutWhenRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioWithoutWhen,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityWarning,
-		Description: "Every scenario must declare a `when` trigger; mirrors the given-when-then schema's required-fields constraint as defense in depth so an accidental schema relaxation still surfaces the modeling issue.",
+		Description: "Every Scenario must declare a `when` trigger; a Scenario without one exercises nothing. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

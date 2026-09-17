@@ -20,7 +20,7 @@ func (*subdomainWithoutBoundedContextRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDSubdomainWithoutBoundedContext,
 		Severity:    diag.SeverityWarning,
-		Description: "A subdomain should list at least one bounded context; mirrors the JSON Schema's minItems: 1 constraint as defense in depth so an accidental schema relaxation still surfaces the modeling issue.",
+		Description: "A subdomain should list at least one Bounded Context; a subdomain without one names a part of the Domain that nothing in the model fills. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

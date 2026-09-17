@@ -19,8 +19,9 @@ func newScenarioReferencesUnknownActorRule() *scenarioReferencesUnknownActorRule
 func (*scenarioReferencesUnknownActorRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioReferencesUnknownActor,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "An actor named on a scenario's when (aggregate or DCB feature) must be declared as an actor in the feature's bounded context.",
+		Description: "An Actor named in the `when` of a Scenario must be declared in the Bounded Context of the Feature. A Scenario cannot exercise an Actor the model does not know.",
 	}
 }
 

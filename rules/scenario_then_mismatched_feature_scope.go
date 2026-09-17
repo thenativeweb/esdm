@@ -20,8 +20,9 @@ func newScenarioThenMismatchedFeatureScopeRule() *scenarioThenMismatchedFeatureS
 func (*scenarioThenMismatchedFeatureScopeRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioThenMismatchedFeatureScope,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityWarning,
-		Description: "A scenario's then shape must match its feature's scope variant: aggregate/DCB features expect events or rejection, process-manager features expect emits/setTimers/cancelTimers/state/ended, read-model features expect result or readModel. Mirrors the schema's if-then bindings as defense in depth so an accidental schema relaxation still surfaces the mismatch.",
+		Description: "The `then` of a Scenario must match the variant of its Feature: Aggregate and Dynamic Consistency Boundary Features expect `events` or `rejection`, Process Manager Features expect `emits`, `setTimers`, `cancelTimers`, `state`, or `ended`, and Read Model Features expect `result` or `readModel`. The schema already binds these shapes; the rule keeps the binding in place independently of the schema.",
 	}
 }
 

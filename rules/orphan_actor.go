@@ -20,7 +20,7 @@ func (*orphanActorRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDOrphanActor,
 		Severity:    diag.SeverityWarning,
-		Description: "Every actor should be named by at least one command.actors or query.actors entry; an actor that nothing references is decorative.",
+		Description: "Every Actor should be named in the `actors` of at least one Command or Query. An Actor nothing references does nothing in the model.",
 	}
 }
 

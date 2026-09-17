@@ -20,7 +20,7 @@ func (*processManagerTimerAtFieldRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDProcessManagerTimerAtField,
 		Severity:    diag.SeverityError,
-		Description: "When a process-manager timer uses the absolute `at` shape, the named field must be declared in the process-manager's state.properties.",
+		Description: "When a timer of a Process Manager uses the absolute `at` shape, the named field must be a property of the `state` of the Process Manager. Otherwise the timer has no point in time to fire at.",
 	}
 }
 

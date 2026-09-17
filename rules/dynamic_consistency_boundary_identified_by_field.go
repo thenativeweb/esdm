@@ -21,7 +21,7 @@ func (*dynamicConsistencyBoundaryIdentifiedByFieldRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDDynamicConsistencyBoundaryIdentifiedByField,
 		Severity:    diag.SeverityError,
-		Description: "When a DCB.identifiedBy entry uses source: command-payload, the named `field` must be declared in every triggering command's data.properties.",
+		Description: "When an `identifiedBy` entry of a Dynamic Consistency Boundary uses `source: command-payload`, the named `field` must be a property of the `data` of every Command that triggers the boundary. Otherwise a decision cannot be tied to its instance.",
 	}
 }
 

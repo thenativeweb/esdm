@@ -20,7 +20,7 @@ func (*humanActorWithBackedByRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDHumanActorWithBackedBy,
 		Severity:    diag.SeverityWarning,
-		Description: "A human actor must not declare backedBy; the field documents which external systems implement a system actor's channel and is meaningful only for type: system. Mirrors the JSON Schema's allOf if-then-not constraint as defense in depth.",
+		Description: "A `human` Actor must not declare `backedBy`. The field names the External Systems that implement the channel of a `system` Actor and has no meaning for a person. The schema already forbids the combination; the rule keeps the restriction in place independently of the schema.",
 	}
 }
 

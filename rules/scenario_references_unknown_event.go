@@ -20,8 +20,9 @@ func newScenarioReferencesUnknownEventRule() *scenarioReferencesUnknownEventRule
 func (*scenarioReferencesUnknownEventRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDScenarioReferencesUnknownEvent,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "Every event referenced in a scenario's given or then.events must be declared in the model. Bare event names are resolved through the feature's scope; scoped event references resolve directly through their {boundedContext, aggregate?, event} triple.",
+		Description: "Every Event a Scenario names in its `given` or in `then.events` must be declared in the model. A bare Event name resolves through the scope of the Feature; a scoped reference names its Bounded Context and, where the Event has one, its Aggregate explicitly.",
 	}
 }
 

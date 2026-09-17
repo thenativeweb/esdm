@@ -19,8 +19,9 @@ func newFeatureReferencesUnknownProcessManagerRule() *featureReferencesUnknownPr
 func (*featureReferencesUnknownProcessManagerRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDFeatureReferencesUnknownProcessManager,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "A process-manager-scoped feature must point at a declared process-manager; an unresolved scope means every scenario underneath is testing nothing.",
+		Description: "A Feature scoped to a Process Manager must name one the model declares. When the scope does not resolve, every Scenario in the Feature describes the behavior of something that does not exist.",
 	}
 }
 

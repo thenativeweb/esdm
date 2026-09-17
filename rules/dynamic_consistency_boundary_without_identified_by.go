@@ -20,7 +20,7 @@ func (*dynamicConsistencyBoundaryWithoutIdentifiedByRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDDynamicConsistencyBoundaryWithoutIdentifiedBy,
 		Severity:    diag.SeverityWarning,
-		Description: "Every DCB must declare at least one identifiedBy entry; mirrors the JSON Schema's required + minItems: 1 constraint as defense in depth.",
+		Description: "Every Dynamic Consistency Boundary must declare at least one `identifiedBy` entry that says which Events belong to one decision. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

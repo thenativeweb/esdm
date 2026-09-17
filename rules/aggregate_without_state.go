@@ -20,7 +20,7 @@ func (*aggregateWithoutStateRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDAggregateWithoutState,
 		Severity:    diag.SeverityWarning,
-		Description: "Every aggregate must declare a state schema; mirrors the JSON Schema's required: [state] constraint as defense in depth. An empty schema (`state: { type: object }`) is allowed and represents an aggregate with no observable state.",
+		Description: "Every Aggregate must declare a `state` schema. An empty schema (`type: object`) is fine and says explicitly that the Aggregate has no observable state. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

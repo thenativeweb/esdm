@@ -19,8 +19,9 @@ func newStoryOrphanGroupRule() *storyOrphanGroupRule {
 func (*storyOrphanGroupRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStoryOrphanGroup,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityWarning,
-		Description: "Every group declared in a domain-story's top-level groups[] registry should be referenced as membership by at least one actor, work-object, or edge; an empty group is a registry entry without anyone in it.",
+		Description: "Every Group declared in the `groups` of a Domain Story should have at least one member: an Actor, a Work Object, or an edge. An empty Group is a frame around nothing.",
 	}
 }
 

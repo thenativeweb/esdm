@@ -20,8 +20,9 @@ func newStoryUnknownGroupMembershipRule() *storyUnknownGroupMembershipRule {
 func (*storyUnknownGroupMembershipRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStoryUnknownGroupMembership,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityError,
-		Description: "Every group name claimed via an inline `groups: [name, ...]` membership on an actor, work-object or edge must exist in the story's top-level groups[] registry. Membership in an undeclared group is a stale reference.",
+		Description: "Every Group an Actor, Work Object, or edge claims membership in via `groups` must be declared in the `groups` of the story. Membership in an undeclared Group is a stale reference.",
 	}
 }
 

@@ -19,8 +19,9 @@ func newStoryOrphanActorRule() *storyOrphanActorRule {
 func (*storyOrphanActorRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDStoryOrphanActor,
+		Extension:   "domain-storytelling",
 		Severity:    diag.SeverityWarning,
-		Description: "An actor declared in a domain-story's actors[] list should be referenced from at least one edge in the story; an actor that nothing draws is decorative. Implicit actors - referenced from edges only, never listed in actors[] - are intentional and not flagged.",
+		Description: "An Actor declared in the `actors` of a Domain Story should be drawn by at least one edge of the story; an Actor nothing draws is decorative. Actors that appear only in edges, without a declaration, are intentional and not flagged.",
 	}
 }
 

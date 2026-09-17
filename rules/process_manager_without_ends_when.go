@@ -20,7 +20,7 @@ func (*processManagerWithoutEndsWhenRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDProcessManagerWithoutEndsWhen,
 		Severity:    diag.SeverityWarning,
-		Description: "Every process manager must declare at least one termination condition; mirrors the JSON Schema's required + minItems: 1 constraint on endsWhen as defense in depth. If the schema is later relaxed to allow long-lived process managers, drop this rule alongside.",
+		Description: "Every Process Manager must declare at least one termination condition in `endsWhen`; a process that never ends is a design smell the model should not hide. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

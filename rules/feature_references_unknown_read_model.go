@@ -19,8 +19,9 @@ func newFeatureReferencesUnknownReadModelRule() *featureReferencesUnknownReadMod
 func (*featureReferencesUnknownReadModelRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDFeatureReferencesUnknownReadModel,
+		Extension:   "given-when-then",
 		Severity:    diag.SeverityError,
-		Description: "A read-model-scoped feature must point at a declared read-model; an unresolved scope means every scenario underneath is testing nothing.",
+		Description: "A Feature scoped to a Read Model must name one the model declares. When the scope does not resolve, every Scenario in the Feature describes the behavior of something that does not exist.",
 	}
 }
 

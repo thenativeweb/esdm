@@ -20,7 +20,7 @@ func (*queryWithoutReadModelRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDQueryWithoutReadModel,
 		Severity:    diag.SeverityWarning,
-		Description: "Every query must declare which read-model it accesses; mirrors the JSON Schema's required: [readModel] constraint as defense in depth.",
+		Description: "Every Query must name the Read Model it reads from. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

@@ -20,7 +20,7 @@ func (*eventHandlerWithoutHandlesRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDEventHandlerWithoutHandles,
 		Severity:    diag.SeverityWarning,
-		Description: "Every event-handler must declare at least one event it handles; mirrors the JSON Schema's required + minItems: 1 constraint as defense in depth.",
+		Description: "Every Event Handler must declare at least one Event it handles. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

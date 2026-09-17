@@ -20,7 +20,7 @@ func (*domainServiceWithoutFunctionsRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDDomainServiceWithoutFunctions,
 		Severity:    diag.SeverityWarning,
-		Description: "Every domain-service must declare at least one function; mirrors the JSON Schema's required + minItems: 1 constraint as defense in depth.",
+		Description: "Every Domain Service must declare at least one function; a Domain Service exists to offer operations. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

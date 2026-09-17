@@ -20,7 +20,7 @@ func (*dynamicConsistencyBoundaryWithoutConsultsRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDDynamicConsistencyBoundaryWithoutConsults,
 		Severity:    diag.SeverityWarning,
-		Description: "Every DCB must declare at least one consulted event; mirrors the JSON Schema's required + minItems: 1 constraint as defense in depth.",
+		Description: "Every Dynamic Consistency Boundary must consult at least one Event; the consulted Events are what its decisions are based on. The schema already requires this; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

@@ -20,7 +20,7 @@ func (*eventWithoutDataRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDEventWithoutData,
 		Severity:    diag.SeverityWarning,
-		Description: "Every event must declare a data schema (an empty schema is allowed for tag-only events); mirrors the JSON Schema's required: [data] constraint as defense in depth so 'no payload' is expressed deliberately.",
+		Description: "Every Event must declare a `data` schema. An empty schema is fine and says explicitly that the Event carries no payload beyond the fact that it happened. The schema already requires the field; the rule keeps the requirement in place independently of the schema.",
 	}
 }
 

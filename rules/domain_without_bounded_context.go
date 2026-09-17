@@ -20,7 +20,7 @@ func (*domainWithoutBoundedContextRule) Meta() Meta {
 	return Meta{
 		ID:          ruleIDDomainWithoutBoundedContext,
 		Severity:    diag.SeverityWarning,
-		Description: "A domain should own at least one bounded context; otherwise its presence in the model is decorative.",
+		Description: "A Domain should own at least one Bounded Context. Without one, nothing in the model belongs to it and its presence is decorative.",
 	}
 }
 
