@@ -12,9 +12,25 @@ import (
 	"github.com/thenativeweb/esdm/schema"
 )
 
+// compiledSchema pairs a compiled validator with the
+// decoded schema document it was compiled from. The
+// validator answers whether a document is valid, but not
+// what a given subschema declares - and translating a
+// validation error into diagnostics needs exactly that,
+// because a failure has to be told apart from the
+// follow-on errors it drags along. The compiled schema
+// exposes no lookup by JSON pointer, so the decoded
+// document is kept alongside it and addressed by the
+// pointer inside every error's schema URL.
+type compiledSchema struct {
+	Validator *jsonschema.Schema
+	Document  any
+	BaseURL   string
+}
+
 var (
 	schemasOnce sync.Once
-	schemasMap  map[string]*jsonschema.Schema
+	schemasMap  map[string]*compiledSchema
 	schemasErr  error
 )
 
@@ -25,15 +41,15 @@ var (
 // schema's `$id` URL with the `https://` prefix
 // stripped). Compilation happens once, lazily, on the
 // first call.
-func schemasByAPIVersion() (map[string]*jsonschema.Schema, error) {
+func schemasByAPIVersion() (map[string]*compiledSchema, error) {
 	schemasOnce.Do(func() {
 		schemasMap, schemasErr = compileAllSchemas()
 	})
 	return schemasMap, schemasErr
 }
 
-func compileAllSchemas() (map[string]*jsonschema.Schema, error) {
-	out := make(map[string]*jsonschema.Schema)
+func compileAllSchemas() (map[string]*compiledSchema, error) {
+	out := make(map[string]*compiledSchema)
 
 	err := compileSchemaInto(out, schema.Core())
 	if err != nil {
@@ -59,7 +75,7 @@ func compileAllSchemas() (map[string]*jsonschema.Schema, error) {
 // extracts its `$id`, compiles it, and stores the
 // compiled schema under the apiVersion key (the `$id`
 // URL without the scheme).
-func compileSchemaInto(out map[string]*jsonschema.Schema, schemaBytes []byte) error {
+func compileSchemaInto(out map[string]*compiledSchema, schemaBytes []byte) error {
 	var decoded any
 	err := yaml.Unmarshal(schemaBytes, &decoded)
 	if err != nil {
@@ -93,6 +109,10 @@ func compileSchemaInto(out map[string]*jsonschema.Schema, schemaBytes []byte) er
 	}
 
 	apiVersion := strings.TrimPrefix(idURL, "https://")
-	out[apiVersion] = compiled
+	out[apiVersion] = &compiledSchema{
+		Validator: compiled,
+		Document:  decoded,
+		BaseURL:   idURL,
+	}
 	return nil
 }
