@@ -991,3 +991,61 @@ backedBy:
 		assert.Empty(t, diagnostics)
 	})
 }
+
+// TestRepeatedAndNestedVariants covers the two ways a
+// single defect could still draw more than one finding
+// after the follow-on errors are gone: alternatives that
+// fail on the same field report it once each, and an
+// alternative that is itself a set of alternatives states
+// its requirements a level down, where the comparison
+// against its siblings could not see them.
+func TestRepeatedAndNestedVariants(t *testing.T) {
+	t.Run("reports a field that every alternative rejects only once", func(t *testing.T) {
+		document := strings.Replace(validEvent, "  aggregate: order\n", "  agregate: order\n", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.ElementsMatch(t, []string{
+			`esdm/structure/missing-required-field: missing required field "aggregate"`,
+			`esdm/structure/unknown-field: unknown field "agregate"`,
+		}, messagesOf(diagnostics))
+	})
+
+	t.Run("identifies an alternative whose requirements sit one level down", func(t *testing.T) {
+		path := writeTempFile(t, `apiVersion: schema.esdm.io/core/v1
+kind: process-manager
+name: order-fulfillment
+scope:
+  domain: commerce
+deliveryGuarantee: at-most-once
+correlatedBy:
+  source: event-field
+  field: orderId
+state:
+  type: object
+startsWhen:
+  - boundedContext: ordering
+    aggregate: order
+    event: order-placed
+endsWhen:
+  - name: fulfilled
+    condition: state.completed is true
+reactions:
+  - when:
+      boundedContext: ordering
+      aggregate: order
+      evnt: order-placed
+    rule: start the fulfillment
+`)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.ElementsMatch(t, []string{
+			`esdm/structure/missing-required-field: missing required field "event"`,
+			`esdm/structure/unknown-field: unknown field "evnt"`,
+		}, messagesOf(diagnostics))
+	})
+}

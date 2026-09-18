@@ -28,6 +28,44 @@ func validationDiagnostics(err *jsonschema.ValidationError, document ast.Node, s
 	var out []diag.Diagnostic
 	context.flatten(err, &out)
 
+	return deduplicate(out)
+}
+
+// deduplicate drops every diagnostic that repeats one
+// already in the list. Two alternatives of a oneOf can
+// fail on the very same field, and stating the same
+// sentence at the same position twice tells the reader
+// nothing the first one did not.
+func deduplicate(diagnostics []diag.Diagnostic) []diag.Diagnostic {
+	// Related is a slice and therefore not comparable, so
+	// it stays out of the key. Two diagnostics that agree
+	// on rule, message, and position carry the same hint
+	// as well.
+	type fingerprint struct {
+		ruleID   string
+		message  string
+		location diag.Location
+	}
+
+	seen := make(map[fingerprint]struct{}, len(diagnostics))
+	out := make([]diag.Diagnostic, 0, len(diagnostics))
+
+	for _, diagnostic := range diagnostics {
+		key := fingerprint{
+			ruleID:   diagnostic.RuleID,
+			message:  diagnostic.Message,
+			location: diagnostic.Location,
+		}
+
+		_, isRepeat := seen[key]
+		if isRepeat {
+			continue
+		}
+
+		seen[key] = struct{}{}
+		out = append(out, diagnostic)
+	}
+
 	return out
 }
 
@@ -399,7 +437,7 @@ func (c *validationContext) distinguishedCause(err *jsonschema.ValidationError) 
 			return nil
 		}
 
-		affinity := branchAffinity(branch, instance)
+		affinity := branchAffinity(c.schema.Document, branch, instance)
 		switch {
 		case affinity > highestAffinity:
 			distinguished = cause
@@ -417,13 +455,23 @@ func (c *validationContext) distinguishedCause(err *jsonschema.ValidationError) 
 	return distinguished
 }
 
+// maximumVariantDepth bounds how far affinity reaches
+// into nested sets of variants. The embedded schemas nest
+// one level; the bound guards against a `$ref` cycle
+// between two sets, which would otherwise recurse forever.
+const maximumVariantDepth = 4
+
 // branchAffinity counts how much of a `oneOf` branch the
 // instance already exhibits. Constants weigh in alongside
 // required properties because a constant is what still
 // identifies a variant when its required fields are
 // incomplete, which is exactly the situation that
 // produced the error.
-func branchAffinity(branch map[string]any, instance ast.Node) int {
+func branchAffinity(document any, branch map[string]any, instance ast.Node) int {
+	return affinityOf(document, branch, instance, 0)
+}
+
+func affinityOf(document any, branch map[string]any, instance ast.Node, depth int) int {
 	affinity := 0
 
 	for _, name := range requiredProperties(branch) {
@@ -439,7 +487,43 @@ func branchAffinity(branch map[string]any, instance ast.Node) int {
 		}
 	}
 
-	return affinity
+	return affinity + nestedAffinity(document, branch, instance, depth)
+}
+
+// nestedAffinity scores a branch that is itself a set of
+// variants, such as a reference to a definition that
+// dispatches again. Such a branch states its requirements
+// one level down and would otherwise score nothing at
+// all, losing to any flat sibling and leaving the
+// comparison tied. Its affinity is that of the variant
+// the instance comes closest to, which puts it on the
+// same footing as the siblings it competes with.
+func nestedAffinity(document any, branch map[string]any, instance ast.Node, depth int) int {
+	if depth >= maximumVariantDepth {
+		return 0
+	}
+
+	highest := 0
+	for _, keyword := range []string{"oneOf", "anyOf"} {
+		variants, isSequence := branch[keyword].([]any)
+		if !isSequence {
+			continue
+		}
+
+		for _, variant := range variants {
+			subschema, isMapping := variant.(map[string]any)
+			if !isMapping {
+				continue
+			}
+
+			affinity := affinityOf(document, dereference(document, subschema), instance, depth+1)
+			if affinity > highest {
+				highest = affinity
+			}
+		}
+	}
+
+	return highest
 }
 
 // isFollowOnUnknownField reports whether an unevaluated
