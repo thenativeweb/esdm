@@ -20,6 +20,8 @@ The category is the middle segment of the ID. `structure` rules throw when the m
 
 The parser, the resolver, and the runner report their findings in the same shape as the rules, but they are not rules of the catalog. They throw before any rule runs, and an error from the parser or the resolver stops the rules from running at all: a model that does not parse or resolve cannot be checked for its meaning. Their IDs use the `structure` category for problems in the model and the `system` category for problems around it.
 
+One defect yields one finding. The schemas describe each kind through a set of alternatives, and a schema validator normally reports the consequences of the alternative it failed on next to the defect itself. Those consequences describe the alternative, not the document, so they are dropped before the findings are reported.
+
 ### `esdm/structure/yaml-syntax-error` { #structure-yaml-syntax-error }
 
 Severity: `error`

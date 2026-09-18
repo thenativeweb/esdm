@@ -3,14 +3,18 @@ package parser_test
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 
 	"github.com/thenativeweb/esdm/diag"
 	"github.com/thenativeweb/esdm/parser"
+	"github.com/thenativeweb/esdm/schema"
 )
 
 // validEvent returns a minimal, schema-valid event
@@ -564,4 +568,360 @@ reactions:
 		require.NoError(t, err)
 		require.NotEmpty(t, diagnostics)
 	})
+}
+
+// messagesOf renders diagnostics as "<ruleID>: <message>"
+// so a test can assert the exact set of findings one
+// defect produces, not just that a certain rule ID is
+// among them.
+func messagesOf(diagnostics []diag.Diagnostic) []string {
+	out := make([]string, 0, len(diagnostics))
+	for _, d := range diagnostics {
+		out = append(out, d.RuleID+": "+d.Message)
+	}
+	return out
+}
+
+// TestFollowOnErrors pins down that one defect yields one
+// finding. Schema validation drops the annotations of a
+// failed branch, which makes every field that branch
+// would have evaluated look unknown, and it reports the
+// causes of all alternatives of a oneOf. Both turn a
+// single defect into a list of findings that sends the
+// reader after the wrong one.
+func TestFollowOnErrors(t *testing.T) {
+	t.Run("reports only the missing language when a bounded context declares a ubiquitous language without one", func(t *testing.T) {
+		document := strings.Replace(boundedContextWithTerminology, "language: en\n", "", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{
+			`esdm/structure/missing-required-field: missing required field "language"`,
+		}, messagesOf(diagnostics))
+	})
+
+	t.Run("reports only the rejection branch when a scenario's rejection carries an unknown field", func(t *testing.T) {
+		path := writeTempFile(t, `apiVersion: schema.esdm.io/given-when-then/v1
+kind: feature
+name: order-cancellation
+scope:
+  domain: commerce
+  boundedContext: ordering
+  aggregate: order
+scenarios:
+  - name: rejects-cancellation-of-shipped-order
+    given:
+      - event: order-placed
+        data: {}
+    when:
+      command: cancel-order
+      data: {}
+    then:
+      rejection:
+        invariant: shipping-blocks-cancellation
+        reason: A shipped order cannot be canceled.
+`)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{
+			`esdm/structure/unknown-field: unknown field "reason"`,
+		}, messagesOf(diagnostics))
+	})
+
+	t.Run("keeps reporting a field that no branch of the document's kind declares", func(t *testing.T) {
+		document := strings.Replace(boundedContextWithTerminology, "language: en\n", "bogusField: true\n", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.ElementsMatch(t, []string{
+			`esdm/structure/missing-required-field: missing required field "language"`,
+			`esdm/structure/unknown-field: unknown field "bogusField"`,
+		}, messagesOf(diagnostics))
+	})
+
+	t.Run("keeps reporting a misspelled field next to the required field it was meant to be", func(t *testing.T) {
+		document := strings.Replace(validEvent, "data:\n", "dat:\n", 1)
+		path := writeTempFile(t, document)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.ElementsMatch(t, []string{
+			`esdm/structure/missing-required-field: missing required field "data"`,
+			`esdm/structure/unknown-field: unknown field "dat"`,
+		}, messagesOf(diagnostics))
+	})
+
+	t.Run("reports every branch of a oneOf when the document resembles none of them", func(t *testing.T) {
+		path := writeTempFile(t, `apiVersion: schema.esdm.io/given-when-then/v1
+kind: feature
+name: order-cancellation
+scope:
+  domain: commerce
+  boundedContext: ordering
+  aggregate: order
+scenarios:
+  - name: rejects-cancellation-of-shipped-order
+    given: []
+    when:
+      command: cancel-order
+      data: {}
+    then: {}
+`)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.ElementsMatch(t, []string{
+			`esdm/structure/missing-required-field: missing required field "events"`,
+			`esdm/structure/missing-required-field: missing required field "rejection"`,
+		}, messagesOf(diagnostics))
+	})
+
+	t.Run("reports the branch a discriminating const identifies", func(t *testing.T) {
+		path := writeTempFile(t, `apiVersion: schema.esdm.io/core/v1
+kind: event-handler
+name: notify-customer
+scope:
+  domain: commerce
+deliveryGuarantee: at-most-once
+handles:
+  - boundedContext: ordering
+    aggregate: order
+    event: order-placed
+sideEffects:
+  - type: external-call
+    rule: send the order-placed notification email
+`)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{
+			`esdm/structure/missing-required-field: missing required field "externalSystem"`,
+		}, messagesOf(diagnostics))
+	})
+}
+
+// sweepDocuments are schema-valid documents covering the
+// kinds whose schemas combine branches: `allOf` with
+// `if`/`then` for the kind, and `oneOf` for the variants
+// of a field. Those are the shapes that produce follow-on
+// errors, so they are the ones the sweep below mutates.
+var sweepDocuments = map[string]string{
+	"event":                        validEvent,
+	"bounded-context":              boundedContextWithTerminology,
+	"aggregate":                    camelCaseIdentifier,
+	"context-mapping":              customerSupplierWithTerms,
+	"dynamic-consistency-boundary": validDynamicConsistencyBoundary,
+	"feature":                      validAggregateFeature,
+}
+
+const validDynamicConsistencyBoundary = `apiVersion: schema.esdm.io/core/v1
+kind: dynamic-consistency-boundary
+name: course-enrollment
+scope:
+  domain: education
+  boundedContext: enrollment
+identifiedBy:
+  - name: course
+    source: command-payload
+    field: courseId
+  - name: tenant
+    source: static
+    value: acme
+consults:
+  - boundedContext: enrollment
+    aggregate: course
+    event: enrollment-recorded
+    criteria: all enrollments with the same courseId
+invariants:
+  - name: at-most-thirty-enrollments
+    rule: a course holds at most 30 enrollments
+`
+
+const validAggregateFeature = `apiVersion: schema.esdm.io/given-when-then/v1
+kind: feature
+name: order-cancellation
+scope:
+  domain: commerce
+  boundedContext: ordering
+  aggregate: order
+scenarios:
+  - name: cancels-an-open-order
+    given:
+      - event: order-placed
+        data: {}
+    when:
+      command: cancel-order
+      data: {}
+    then:
+      events:
+        - event: order-canceled
+          data: {}
+  - name: rejects-cancellation-of-a-shipped-order
+    given:
+      - event: order-shipped
+        data: {}
+    when:
+      command: cancel-order
+      data: {}
+    then:
+      rejection:
+        invariant: shipping-blocks-cancellation
+`
+
+// referenceValidators compiles the embedded schemas
+// independently of the parser. The sweep needs a second
+// opinion on whether a mutated document is valid at all;
+// asking the parser itself would make the assertion
+// circular, since the parser is what is under test.
+func referenceValidators(t *testing.T) map[string]*jsonschema.Schema {
+	t.Helper()
+
+	validators := make(map[string]*jsonschema.Schema)
+
+	compile := func(source []byte) {
+		var decoded any
+		require.NoError(t, yaml.Unmarshal(source, &decoded))
+
+		id, isString := decoded.(map[string]any)["$id"].(string)
+		require.True(t, isString, "schema without a string $id")
+
+		compiler := jsonschema.NewCompiler()
+		require.NoError(t, compiler.AddResource(id, decoded))
+
+		compiled, err := compiler.Compile(id)
+		require.NoError(t, err)
+
+		validators[strings.TrimPrefix(id, "https://")] = compiled
+	}
+
+	compile(schema.Core())
+
+	extensions, err := schema.Extensions()
+	require.NoError(t, err)
+	for _, extension := range extensions {
+		compile(extension.Bytes)
+	}
+
+	return validators
+}
+
+// fieldPaths lists every mapping key in a decoded
+// document, each as the sequence of segments leading to
+// it.
+func fieldPaths(value any, path []string) [][]string {
+	var paths [][]string
+
+	switch typed := value.(type) {
+	case map[string]any:
+		for key, child := range typed {
+			here := append(append([]string{}, path...), key)
+			paths = append(paths, here)
+			paths = append(paths, fieldPaths(child, here)...)
+		}
+	case []any:
+		for index, item := range typed {
+			here := append(append([]string{}, path...), strconv.Itoa(index))
+			paths = append(paths, fieldPaths(item, here)...)
+		}
+	}
+
+	return paths
+}
+
+// renameField returns a copy of the document with the
+// field at path renamed. Renaming is the mutation the
+// sweep uses because it produces both halves of the
+// problem at once: the original field goes missing and an
+// unknown one takes its place.
+func renameField(t *testing.T, document string, path []string, renamed string) (any, string) {
+	t.Helper()
+
+	var mutated any
+	require.NoError(t, yaml.Unmarshal([]byte(document), &mutated))
+
+	parent := mutated
+	for _, segment := range path[:len(path)-1] {
+		switch typed := parent.(type) {
+		case map[string]any:
+			parent = typed[segment]
+		case []any:
+			index, err := strconv.Atoi(segment)
+			require.NoError(t, err)
+			parent = typed[index]
+		}
+	}
+
+	mapping, isMapping := parent.(map[string]any)
+	require.True(t, isMapping)
+
+	key := path[len(path)-1]
+	mapping[renamed] = mapping[key]
+	delete(mapping, key)
+
+	encoded, err := yaml.Marshal(mutated)
+	require.NoError(t, err)
+
+	return mutated, string(encoded)
+}
+
+// TestEveryDefectKeepsAFinding sweeps one renamed field
+// at a time through every document above and insists that
+// the parser still describes the defect. Dropping
+// follow-on errors is only correct as long as the finding
+// that names the cause survives; a filter that silenced a
+// defect outright would be worse than the noise it
+// removes.
+func TestEveryDefectKeepsAFinding(t *testing.T) {
+	validators := referenceValidators(t)
+
+	for kind, document := range sweepDocuments {
+		t.Run(kind, func(t *testing.T) {
+			var decoded any
+			require.NoError(t, yaml.Unmarshal([]byte(document), &decoded))
+
+			for _, path := range fieldPaths(decoded, nil) {
+				field := path[len(path)-1]
+				renamed := field + "Renamed"
+
+				mutated, encoded := renameField(t, document, path, renamed)
+
+				apiVersion, _ := mutated.(map[string]any)["apiVersion"].(string)
+				validator, isKnown := validators[apiVersion]
+				if !isKnown {
+					continue
+				}
+
+				// A rename inside a free-form object - a
+				// payload schema, a metadata map - is still
+				// valid, and then there is nothing to report.
+				if validator.Validate(mutated) == nil {
+					continue
+				}
+
+				_, diagnostics, err := parser.Parse(writeTempFile(t, encoded))
+				require.NoError(t, err)
+
+				found := messagesOf(diagnostics)
+				namesTheDefect := false
+				for _, message := range found {
+					if strings.Contains(message, `"`+field+`"`) || strings.Contains(message, `"`+renamed+`"`) {
+						namesTheDefect = true
+					}
+				}
+
+				assert.True(t, namesTheDefect,
+					"renaming %s to %q left no finding naming it, got %v",
+					strings.Join(path, "/"), renamed, found)
+			}
+		})
+	}
 }

@@ -68,7 +68,7 @@ func Parse(path string) (*ParsedFile, []diag.Diagnostic, error) {
 		apiVersionNode := node.Field("apiVersion")
 		apiVersion, _ := apiVersionNode.Text()
 
-		validator, isKnown := validators[apiVersion]
+		schema, isKnown := validators[apiVersion]
 		if !isKnown {
 			diagnostics = append(diagnostics, unknownAPIVersionDiagnostic(path, node, apiVersionNode, apiVersion, validators))
 			continue
@@ -80,11 +80,11 @@ func Parse(path string) (*ParsedFile, []diag.Diagnostic, error) {
 			continue
 		}
 
-		err = validator.Validate(generic)
+		err = schema.Validator.Validate(generic)
 		if err != nil {
 			var validationError *jsonschema.ValidationError
 			if errors.As(err, &validationError) {
-				diagnostics = append(diagnostics, validationDiagnostics(validationError, node)...)
+				diagnostics = append(diagnostics, validationDiagnostics(validationError, node, schema)...)
 			}
 		}
 	}
@@ -99,7 +99,7 @@ func Parse(path string) (*ParsedFile, []diag.Diagnostic, error) {
 // know. The diagnostic's Location points at the
 // apiVersion field when present, or at the document
 // root as a fallback.
-func unknownAPIVersionDiagnostic(path string, document ast.Node, apiVersionNode ast.Node, apiVersion string, validators map[string]*jsonschema.Schema) diag.Diagnostic {
+func unknownAPIVersionDiagnostic(path string, document ast.Node, apiVersionNode ast.Node, apiVersion string, validators map[string]*compiledSchema) diag.Diagnostic {
 	location := apiVersionNode.Location()
 	if location.IsZero() {
 		location = document.Location()
@@ -121,7 +121,7 @@ func unknownAPIVersionDiagnostic(path string, document ast.Node, apiVersionNode 
 	}
 }
 
-func knownAPIVersions(validators map[string]*jsonschema.Schema) string {
+func knownAPIVersions(validators map[string]*compiledSchema) string {
 	names := make([]string, 0, len(validators))
 	for k := range validators {
 		names = append(names, k)
