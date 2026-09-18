@@ -925,3 +925,69 @@ func TestEveryDefectKeepsAFinding(t *testing.T) {
 		})
 	}
 }
+
+// TestSilentSchemaViolations pins down that a document
+// the schema rejects always produces a finding. Some
+// schema keywords fail without nested causes, and a
+// translation that only ever walks causes turns such a
+// failure into silence - the worst answer a linter can
+// give.
+func TestSilentSchemaViolations(t *testing.T) {
+	t.Run("reports a field that is forbidden by the value of another one", func(t *testing.T) {
+		path := writeTempFile(t, `apiVersion: schema.esdm.io/core/v1
+kind: actor
+name: customer
+scope:
+  domain: commerce
+  boundedContext: ordering
+type: human
+backedBy:
+  - crm-gateway
+`)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{
+			`esdm/structure/constraint-violation: field "backedBy" is not allowed when "type" is "human"`,
+		}, messagesOf(diagnostics))
+	})
+
+	t.Run("points the finding at the forbidden field", func(t *testing.T) {
+		path := writeTempFile(t, `apiVersion: schema.esdm.io/core/v1
+kind: actor
+name: customer
+scope:
+  domain: commerce
+  boundedContext: ordering
+type: human
+backedBy:
+  - crm-gateway
+`)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+		require.Len(t, diagnostics, 1)
+
+		assert.Equal(t, 8, diagnostics[0].Location.Line,
+			"expected the finding on the backedBy line, got %+v", diagnostics[0].Location)
+	})
+
+	t.Run("accepts the same field on an actor whose type allows it", func(t *testing.T) {
+		path := writeTempFile(t, `apiVersion: schema.esdm.io/core/v1
+kind: actor
+name: billing-robot
+scope:
+  domain: commerce
+  boundedContext: ordering
+type: system
+backedBy:
+  - crm-gateway
+`)
+
+		_, diagnostics, err := parser.Parse(path)
+		require.NoError(t, err)
+
+		assert.Empty(t, diagnostics)
+	})
+}

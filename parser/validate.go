@@ -86,15 +86,15 @@ func (c *validationContext) pointerOf(schemaURL string) (string, bool) {
 
 // flatten walks the ValidationError tree and emits one or
 // more Diagnostics for each leaf error. Wrapper kinds
-// (Schema, Group, AllOf, AnyOf, OneOf, Not) are traversed
+// (Schema, Group, AllOf, AnyOf, OneOf) are traversed
 // rather than reported: their nested causes carry the
 // actionable information. A OneOf is traversed
 // selectively, and an unevaluated property is dropped
 // when it turns out to be follow-on noise.
 func (c *validationContext) flatten(err *jsonschema.ValidationError, out *[]diag.Diagnostic) {
 	switch err.ErrorKind.(type) {
-	case *kind.Schema, *kind.Group, *kind.AllOf, *kind.AnyOf, *kind.Not:
-		c.flattenCauses(err.Causes, out)
+	case *kind.Schema, *kind.Group, *kind.AllOf, *kind.AnyOf:
+		c.flattenCauses(err, err.Causes, out)
 		return
 	case *kind.OneOf:
 		causes := err.Causes
@@ -104,7 +104,7 @@ func (c *validationContext) flatten(err *jsonschema.ValidationError, out *[]diag
 			causes = []*jsonschema.ValidationError{distinguished}
 		}
 
-		c.flattenCauses(causes, out)
+		c.flattenCauses(err, causes, out)
 		return
 	}
 
@@ -160,6 +160,14 @@ func (c *validationContext) flatten(err *jsonschema.ValidationError, out *[]diag
 			}
 		}
 		*out = append(*out, diagnostic)
+	case *kind.Not:
+		forbidden, isExpressible := c.forbiddenFieldDiagnostic(err)
+		if isExpressible {
+			*out = append(*out, forbidden)
+			return
+		}
+
+		*out = append(*out, c.constraintViolation(err, err.ErrorKind.LocalizedString(defaultPrinter)))
 	case *kind.FalseSchema:
 		if isUnknownFieldContext(err.SchemaURL) && len(err.InstanceLocation) > 0 {
 			if c.isFollowOnUnknownField(err) {
@@ -177,33 +185,171 @@ func (c *validationContext) flatten(err *jsonschema.ValidationError, out *[]diag
 			return
 		}
 
-		target := locate(c.document, err.InstanceLocation)
-		*out = append(*out, diag.Diagnostic{
-			RuleID:   "esdm/structure/constraint-violation",
-			Severity: diag.SeverityError,
-			Message:  err.ErrorKind.LocalizedString(defaultPrinter),
-			Location: target.Location(),
-		})
+		*out = append(*out, c.constraintViolation(err, err.ErrorKind.LocalizedString(defaultPrinter)))
 	default:
 		if len(err.Causes) > 0 {
-			c.flattenCauses(err.Causes, out)
+			c.flattenCauses(err, err.Causes, out)
 			return
 		}
 
-		target := locate(c.document, err.InstanceLocation)
-		*out = append(*out, diag.Diagnostic{
-			RuleID:   "esdm/structure/constraint-violation",
-			Severity: diag.SeverityError,
-			Message:  err.ErrorKind.LocalizedString(defaultPrinter),
-			Location: target.Location(),
-		})
+		*out = append(*out, c.constraintViolation(err, err.ErrorKind.LocalizedString(defaultPrinter)))
 	}
 }
 
-func (c *validationContext) flattenCauses(causes []*jsonschema.ValidationError, out *[]diag.Diagnostic) {
+// flattenCauses walks the causes of a wrapper error and
+// reports the wrapper itself when they produced nothing.
+// Some keywords fail without nested causes, and the
+// filters above can in principle drop everything a
+// wrapper had to say; either way, a document the schema
+// rejected must not pass in silence.
+func (c *validationContext) flattenCauses(err *jsonschema.ValidationError, causes []*jsonschema.ValidationError, out *[]diag.Diagnostic) {
+	before := len(*out)
+
 	for _, cause := range causes {
 		c.flatten(cause, out)
 	}
+
+	if len(*out) > before {
+		return
+	}
+
+	*out = append(*out, c.unexpressed(err))
+}
+
+// constraintViolation is the shape every failure takes
+// that none of the more specific diagnostics covers.
+func (c *validationContext) constraintViolation(err *jsonschema.ValidationError, message string) diag.Diagnostic {
+	target := locate(c.document, err.InstanceLocation)
+
+	return diag.Diagnostic{
+		RuleID:   "esdm/structure/constraint-violation",
+		Severity: diag.SeverityError,
+		Message:  message,
+		Location: target.Location(),
+	}
+}
+
+// unexpressed phrases a failure that produced no
+// diagnostic of its own. A `oneOf` whose branches match
+// more than once is the one such failure a schema can
+// produce: the validator states it without nested causes,
+// since there is no failing branch to point at.
+func (c *validationContext) unexpressed(err *jsonschema.ValidationError) diag.Diagnostic {
+	oneOf, isOneOf := err.ErrorKind.(*kind.OneOf)
+	if isOneOf && oneOf.Subschemas != nil {
+		return c.constraintViolation(err, "matches more than one of the forms allowed here; exactly one must apply")
+	}
+
+	return c.constraintViolation(err, err.ErrorKind.LocalizedString(defaultPrinter))
+}
+
+// forbiddenFieldDiagnostic phrases a `not` failure in
+// terms of the model. The schemas use `not` to forbid a
+// field depending on the value of a sibling, and the
+// failure carries neither half: it has no nested causes
+// and names no field. Both are therefore read back out of
+// the schema at the position the failure points at.
+func (c *validationContext) forbiddenFieldDiagnostic(err *jsonschema.ValidationError) (diag.Diagnostic, bool) {
+	pointer, isOwn := c.pointerOf(err.SchemaURL)
+	if !isOwn {
+		return diag.Diagnostic{}, false
+	}
+
+	subschema, isResolved := subschemaAt(c.schema.Document, pointer)
+	if !isResolved {
+		return diag.Diagnostic{}, false
+	}
+
+	forbidden, isMapping := subschema["not"].(map[string]any)
+	if !isMapping {
+		return diag.Diagnostic{}, false
+	}
+
+	// `not: {required: [a, b]}` forbids the combination of
+	// the two, not either one on its own, so only a single
+	// entry can be phrased as one field being out of place.
+	names := requiredProperties(forbidden)
+	if len(names) != 1 {
+		return diag.Diagnostic{}, false
+	}
+	field := names[0]
+
+	message := fmt.Sprintf("field %q is not allowed here", field)
+	condition, hasCondition := c.governingCondition(pointer)
+	if hasCondition {
+		message = fmt.Sprintf("field %q is not allowed when %q is %q", field, condition.property, condition.value)
+	}
+
+	// The finding is about the field, so it belongs on the
+	// key. The value may start on the next line.
+	parent := locate(c.document, err.InstanceLocation)
+	location := fieldKeyLocation(parent, field)
+	if location.IsZero() {
+		location = parent.Location()
+	}
+
+	return diag.Diagnostic{
+		RuleID:   "esdm/structure/constraint-violation",
+		Severity: diag.SeverityError,
+		Message:  message,
+		Location: location,
+	}, true
+}
+
+// schemaCondition is an `if` that pins one property to
+// one constant.
+type schemaCondition struct {
+	property string
+	value    string
+}
+
+// governingCondition reads the `if` guarding the `then`
+// branch at pointer. That is the form the schemas use to
+// make one field depend on the value of another, and it
+// is what turns "not allowed here" into "not allowed when
+// X is Y". An `else` branch is deliberately not covered:
+// its condition is the negated one, which no schema uses
+// and which would need different wording.
+func (c *validationContext) governingCondition(pointer string) (schemaCondition, bool) {
+	parentPointer, isThenBranch := strings.CutSuffix(pointer, "/then")
+	if !isThenBranch {
+		return schemaCondition{}, false
+	}
+
+	parent, isResolved := subschemaAt(c.schema.Document, parentPointer)
+	if !isResolved {
+		return schemaCondition{}, false
+	}
+
+	condition, isMapping := parent["if"].(map[string]any)
+	if !isMapping {
+		return schemaCondition{}, false
+	}
+
+	constants := constrainedConstants(condition)
+	if len(constants) != 1 {
+		return schemaCondition{}, false
+	}
+
+	for property, value := range constants {
+		return schemaCondition{property: property, value: value}, true
+	}
+
+	return schemaCondition{}, false
+}
+
+// fieldKeyLocation returns the position of a field's key
+// inside a mapping, or a zero Location when the mapping
+// has no such field.
+func fieldKeyLocation(parent ast.Node, name string) diag.Location {
+	for _, entry := range parent.Entries() {
+		text, isText := entry.Key.Text()
+		if isText && text == name {
+			return entry.Key.Location()
+		}
+	}
+
+	return diag.Location{}
 }
 
 // distinguishedCause picks the cause of the one `oneOf`
