@@ -80,11 +80,11 @@ Severity: `warning`
 
 Every Aggregate must declare a `state` schema. An empty schema (`type: object`) is fine and says explicitly that the Aggregate has no observable state. The schema already requires the field; the rule keeps the requirement in place independently of the schema.
 
-### `esdm/modeling/bounded-context-without-consistency-unit` { #modeling-bounded-context-without-consistency-unit }
+### `esdm/modeling/bounded-context-without-content` { #modeling-bounded-context-without-content }
 
 Severity: `warning`
 
-A Bounded Context should host at least one Aggregate or Dynamic Consistency Boundary. Without a consistency unit it holds no behavior and is a placeholder.
+A Bounded Context should host at least one Aggregate, Dynamic Consistency Boundary, or Read Model. These are the kinds that carry behavior or derived state; a Bounded Context holding only supporting elements such as Entities, Value Objects, or Actors is a placeholder.
 
 ### `esdm/modeling/command-without-data` { #modeling-command-without-data }
 
