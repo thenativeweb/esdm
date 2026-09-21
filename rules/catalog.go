@@ -19,7 +19,7 @@ func Catalog() []Rule {
 		newDuplicateTranslationLanguageRule(),
 		newTranslationIntoOwnLanguageRule(),
 		newAmbiguousNameRule(),
-		newBoundedContextWithoutConsistencyUnitRule(),
+		newBoundedContextWithoutContentRule(),
 		newDomainWithoutBoundedContextRule(),
 		newOrphanExternalSystemRule(),
 		newProcessManagerWithoutEventReactionsRule(),
