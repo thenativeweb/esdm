@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 27 31">
+  <defs>
+    <linearGradient id="esdm-1" gradientUnits="userSpaceOnUse" x1="8.10" y1="0.55" x2="18.90" y2="14.95">
+      <stop offset="0" stop-color="#dcf8a8"/>
+      <stop offset="1" stop-color="#caf39a"/>
+    </linearGradient>
+    <linearGradient id="esdm-2" gradientUnits="userSpaceOnUse" x1="1.35" y1="12.18" x2="12.15" y2="26.57">
+      <stop offset="0" stop-color="#b8ee8b"/>
+      <stop offset="1" stop-color="#9fe777"/>
+    </linearGradient>
+    <linearGradient id="esdm-3" gradientUnits="userSpaceOnUse" x1="14.85" y1="12.18" x2="25.65" y2="26.57">
+      <stop offset="0" stop-color="#8fe36a"/>
+      <stop offset="1" stop-color="#72d567"/>
+    </linearGradient>
+    <linearGradient id="esdm-4" gradientUnits="userSpaceOnUse" x1="8.10" y1="4.74" x2="18.90" y2="19.14">
+      <stop offset="0" stop-color="#81dc69"/>
+      <stop offset="1" stop-color="#4dc563"/>
+    </linearGradient>
+    <linearGradient id="esdm-5" gradientUnits="userSpaceOnUse" x1="5.00" y1="10.08" x2="15.79" y2="24.48">
+      <stop offset="0" stop-color="#32ae66"/>
+      <stop offset="1" stop-color="#17886a"/>
+    </linearGradient>
+    <linearGradient id="esdm-6" gradientUnits="userSpaceOnUse" x1="11.21" y1="10.08" x2="22.00" y2="24.48">
+      <stop offset="0" stop-color="#10705c"/>
+      <stop offset="1" stop-color="#0b4f45"/>
+    </linearGradient>
+  </defs>
+  <polygon points="13.500,0.000 27.000,7.750 13.500,15.500 0.000,7.750" fill="url(#esdm-1)"/>
+  <polygon points="0.000,7.750 13.500,15.500 13.500,31.000 0.000,23.250" fill="url(#esdm-2)"/>
+  <polygon points="13.500,15.500 27.000,7.750 27.000,23.250 13.500,31.000" fill="url(#esdm-3)"/>
+  <polygon points="13.500,8.370 19.710,11.935 13.500,15.500 7.290,11.935" fill="url(#esdm-4)"/>
+  <polygon points="7.290,11.935 13.500,15.500 13.500,22.630 7.290,19.065" fill="url(#esdm-5)"/>
+  <polygon points="13.500,15.500 19.710,11.935 19.710,19.065 13.500,22.630" fill="url(#esdm-6)"/>
+</svg>
